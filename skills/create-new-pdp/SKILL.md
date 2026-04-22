@@ -186,11 +186,30 @@ Dopo che l'utente ha fornito tutto: fai un riepilogo sintetico (nome prodotto, 3
 
 ---
 
-## Fase 5 — Riscrittura testi per il nuovo prodotto, sezione-per-sezione
+## Fase 5 — Riscrittura testi per il nuovo prodotto
 
-**Contesto importante**: le sezioni duplicate contengono ATTUALMENTE i testi del prodotto base (es. sezioni copiate da `berberina-pills` parlano ancora di berberina). Il tuo compito in questa fase è, sezione per sezione, **riscrivere i testi del nuovo prodotto** partendo dalla research raccolta in Fase 4, mantenendo IDENTICI markup/CSS/JS/struttura della sezione.
+**Contesto importante**: le sezioni duplicate contengono ATTUALMENTE i testi del prodotto base (es. sezioni copiate da `berberina-pills` parlano ancora di berberina). Il tuo compito in questa fase è **riscrivere i testi del nuovo prodotto** partendo dalla research raccolta in Fase 4, mantenendo IDENTICI markup/CSS/JS/struttura della sezione.
 
 Nessun HTML da incollare in questa fase — tutti i contenuti del nuovo prodotto li hai già dal blocco di ricerca della Fase 4.
+
+### 5.0 Scelta modalità (obbligatoria, all'inizio della fase)
+
+Usa `AskUserQuestion` per proporre le due modalità di lavoro:
+
+**Opzione A — Sezione per sezione (consigliata per prima PDP)**
+Per ogni sezione: riscrivi, mostra diff, push solo di quella sezione, l'utente verifica live, passa alla successiva.
+→ Più lenta ma più sicura: se una modifica è sbagliata te ne accorgi subito e sai esattamente dove.
+
+**Opzione B — Modalità batch**
+Riscrivi tutte le sezioni in parallelo, mostra diff completo di tutte, l'utente approva una volta, push finale in un comando solo.
+→ Più veloce ma meno granulare: un eventuale errore si nota solo alla fine.
+
+**Opzione C — Misto**
+L'utente può partire sezione-per-sezione e a metà passare a batch (o viceversa). Rispetta la scelta corrente finché non chiede diversamente.
+
+Salva la scelta e procedi con il sotto-flusso corrispondente qui sotto.
+
+### 5A — Sotto-flusso sezione per sezione
 
 Per ogni sezione nel template nuovo, in ordine di apparizione nel JSON (top → bottom):
 
@@ -246,6 +265,42 @@ Per ogni sezione nel template nuovo, in ordine di apparizione nel JSON (top → 
 9. Quando l'utente conferma, passa alla sezione successiva.
 
 Continua fino all'ultima sezione del template. A fine fase, tutti i testi del nuovo prodotto sono live, le immagini sono ancora quelle vecchie (placeholder del prodotto base): vengono sostituite in Fase 6.
+
+### 5B — Sotto-flusso batch
+
+1. **Leggi tutte le sezioni duplicate in parallelo** con più chiamate `Read` in un singolo messaggio. Per ciascuna identifica ruolo + testi da riscrivere.
+2. **Pianifica la riscrittura integrata di tutta la PDP**: i testi tra sezioni devono essere coerenti (hero e FAQ devono parlare lo stesso linguaggio, i claim principali vanno ripetuti con stessa terminologia, i numeri dei proof points tornano).
+3. **Mostra all'utente un diff completo di tutte le sezioni in un unico messaggio**, raggruppato per sezione:
+   ```
+   === svc-hero-badge.liquid (hero) ===
+   — Headline
+      prima: "..."
+      dopo:  "..."
+   ...
+
+   === svc-pdp-05.liquid (carousel testimonial) ===
+   ...
+   ```
+4. **Aspetta approvazione globale o correzioni puntuali**:
+   - Se l'utente approva tutto → applica le modifiche a tutti i file in parallelo (multiple `Edit` o `Bash` heredoc con `python3` che scrive più file).
+   - Se chiede correzioni su sezioni specifiche → applica solo quelle correzioni e ripresenta il diff aggiornato per riconferma.
+   - Se chiede un cambio di tono globale → rigenera tutto.
+5. **Verifica no-regressioni sul template base**: prima del push, conferma a te stesso di non aver aperto/modificato per sbaglio file del prefisso base.
+6. **Push selettivo unico** con tutte le sezioni in un solo comando:
+   ```bash
+   cd "<store.workdir_path>"
+   set -a; source "<store.env_path>"; set +a
+   npx @shopify/cli@latest theme push \
+     --theme <store.theme_id> --nodelete --allow-live \
+     --only "sections/<nuovo-prefisso>-<suffix1>.liquid" \
+     --only "sections/<nuovo-prefisso>-<suffix2>.liquid" \
+     # ...una per ogni sezione duplicata
+   ```
+7. Chiedi all'utente di aprire l'URL live e fare un check completo della PDP. Raccogli eventuali aggiustamenti e applicali puntualmente (in questa fase i fix successivi sono sezione-per-sezione, anche se il primo push era batch).
+
+### 5C — Misto
+
+L'utente può cambiare modalità in corsa dicendo "passa a batch" o "torna a sezione per sezione". Rispetta la scelta corrente senza resettare il progresso: continua dalla prossima sezione non ancora lavorata.
 
 ---
 
