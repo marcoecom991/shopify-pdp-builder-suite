@@ -13,7 +13,7 @@ Segui le 8 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` come ga
 
 - **🔒 Mai toccare template o sezioni esistenti.** Le PDP e altre page template dello store sono intoccabili. Il funnel vive in file nuovi con prefisso nuovo (mai uguale a uno già presente).
 - **Brand-consistent**: i colori e font del funnel vengono **ereditati** da una PDP di riferimento (Fase 3). Non inventare palette/tipografia.
-- **CTA → PDP**: tutti i bottoni CTA del funnel puntano all'URL PDP del prodotto fornito in Fase 6. Mai `href="#"` o URL placeholder.
+- **CTA → PDP**: tutti i bottoni CTA del funnel puntano all'URL PDP del prodotto fornito in Fase 5. Mai `href="#"` o URL placeholder.
 - **Mobile-first**: il traffico funnel è >80% mobile (ads paid). Ogni sezione deve leggersi benissimo a 375px.
 - **No framework esterni**: niente Tailwind, Bootstrap, ecc. Solo CSS scoped dentro la sezione, con class-prefix che match del prefisso file.
 - **Un push per volta, selettivo**. Mai `theme push` senza `--only`. Il `--only` include SOLO i file del nuovo funnel.
@@ -121,9 +121,100 @@ Salva l'oggetto `brand.*` in memoria. Verrà iniettato nelle sezioni in Fase 7.
 
 ---
 
-## Fase 4 — Creazione template funnel
+## Fase 4 — Scelta tipo di funnel
 
-### 4.1 Scelta partenza
+**PRIMA di creare il template**, devi sapere che tipo di funnel stiamo costruendo. Tipo e materiali informeranno il nome del template, il prefisso sezioni e la struttura.
+
+`AskUserQuestion`: "Che tipo di funnel stiamo creando?"
+
+Opzioni:
+- **Advertorial** — articolo narrativo, storytelling personale che porta a PDP. Target freddo.
+- **Listicle** — articolo "N motivi per", benefici ordinati, confronto. Target semi-caldo.
+- **Quiz** — domande + risultato personalizzato, engagement-driven. Target freddo.
+- **Altro** — descrivi liberamente la struttura, poi forniamo esempi.
+
+Salva in `funnel.type` ∈ {`advertorial`, `listicle`, `quiz`, `other`}.
+
+Carica la struttura base di riferimento da `references/funnel-types.md` per il tipo scelto. Sarà usata come **ipotesi di partenza** in Fase 7; verrà raffinata con gli esempi competitor di Fase 5.
+
+Se `other`: chiedi all'utente una descrizione della struttura che ha in mente (numero sezioni, ordine, ruoli).
+
+---
+
+## Fase 5 — Raccolta materiali
+
+Presenta una checklist all'utente. Aspetta che abbia fornito tutto prima di procedere.
+
+### 5.1 Esempi competitor del tipo scelto
+
+Chiedi:
+- 2-5 **screenshot / URL** di funnel competitor dello stesso tipo.
+- Per ogni esempio, un breve contesto: perché ti piace, cosa copieresti, cosa cambieresti.
+
+Se l'utente non ha esempi pronti, suggerisci:
+- Typology hunt: swipefile.com, advertorial.com, altri aggregator.
+- Screenshot da Facebook Ads Library di funnel visti su ads recenti.
+
+Claude analizza gli esempi per:
+- Confermare/raffinare la struttura base del tipo scelto.
+- Identificare pattern di hook, claim, obiezioni, CTA.
+- Estrarre lunghezza/density media.
+
+### 5.2 Research prodotto
+
+Identica a `/create-new-pdp` Fase 4:
+- Ingredienti chiave (nome + effetto + dosaggio).
+- Claim principali (3-5 effetti del prodotto).
+- Target audience (chi, età, problema).
+- Differenziazione vs competitor.
+- Proof points (certificazioni, test clinici, numeri, recensioni reali).
+
+### 5.3 URL PDP del prodotto (OBBLIGATORIO)
+
+`AskUserQuestion` o chiedi in chiaro: "Qual è l'URL PDP del prodotto su questo store?"
+
+Esempi:
+- `https://glowria.com/products/crema-corpo-autoabbronzante-ufficiale`
+- `https://nimea.com/products/berberina-pills`
+
+Valida che:
+- Inizia con `https://`.
+- Contiene `/products/<slug>`.
+
+Salva in `funnel.cta_url`. Sarà il `href` di **TUTTI** i bottoni CTA del funnel.
+
+### 5.4 Angolo marketing corrente
+
+Chiedi:
+- 1-3 copy ads attuali (headline + descrizione).
+- Concept video se esistente (link o transcript).
+
+Serve per allineare il tono del funnel all'ads che porterà traffico.
+
+### 5.5 Brand assets extra
+
+Chiedi:
+- Logo URL CDN (se diverso da quello già nel tema).
+- Eventuali asset custom (pattern, mockup, loghi certificazioni).
+
+### 5.6 Riepilogo e conferma
+
+Fai un riepilogo sintetico:
+- Tipo funnel + struttura pianificata (N sezioni).
+- 3 claim principali prodotto.
+- 3 proof points.
+- Palette + tipografia (richiama `brand.*` da Fase 3).
+- URL CTA.
+
+Chiedi: "Tutto chiaro, procedo con la creazione del template?"
+
+---
+
+## Fase 6 — Creazione template funnel
+
+Ora che conosci tipo + materiali, puoi creare il template con un nome sensato.
+
+### 6.1 Scelta partenza
 
 `AskUserQuestion`: "Partire da zero o duplicare un template page esistente?"
 - **Da zero** (default, caso tipico).
@@ -131,16 +222,23 @@ Salva l'oggetto `brand.*` in memoria. Verrà iniettato nelle sezioni in Fase 7.
 
 Se duplica: riusa il flusso della Fase 3 di `/create-new-pdp` (lista `page.*.json`, prefisso, duplicazione sezioni). Fonte: `references/section-naming.md`.
 
-### 4.2 Nome nuovo template
+### 6.2 Nome nuovo template
 
 `AskUserQuestion`: "Nome del nuovo template funnel?"
+
+Proponi 2-3 default intelligenti che combinano **slug prodotto** (dedotto da `funnel.cta_url` di Fase 5.3) + **tipo funnel** (`funnel.type` di Fase 4). Esempi:
+
+- Prodotto `crema-borse-occhiaie` + tipo `advertorial` → `crema-borse-occhiaie-advertorial`
+- Prodotto `berberina-pills` + tipo `listicle` → `berberina-pills-listicle`
+- Prodotto `crema-rassodante` + tipo `quiz` → `crema-rassodante-quiz`
+
+Vincoli:
 - Kebab-case, solo `[a-z0-9-]`.
-- Esempi: `autoabbronzante-advertorial`, `berberina-listicle`, `crema-rassodante-quiz`.
 - Valida che `<workdir>/templates/page.<nome>.json` NON esista.
 
 Salva in `funnel.template_name`.
 
-### 4.3 Layout — header/footer on/off
+### 6.3 Layout — header/footer on/off
 
 `AskUserQuestion`: "Mantenere header e footer Shopify?"
 
@@ -157,17 +255,17 @@ Se l'utente sceglie chromeless:
 
 Salva in `funnel.layout`.
 
-### 4.4 Prefisso sezioni
+### 6.4 Prefisso sezioni
 
-Proponi un prefisso di default dalle iniziali del nome (vedi `references/section-naming.md`, sezione "Naming per FUNNEL"):
-- `autoabbronzante-advertorial` → `aa-` (breve) o `aa-adv-` (esplicita).
+Proponi un prefisso di default derivato da `funnel.template_name` (vedi `references/section-naming.md`, sezione "Naming per FUNNEL"):
+- `crema-borse-occhiaie-advertorial` → `cbo-adv-` (esplicita) o `cbo-` (breve).
 - `berberina-listicle` → `bl-` o `bb-lst-`.
 
 `AskUserQuestion`: "Prefisso sezioni: `<default>`? (conferma o alternativo)"
 
 Salva in `funnel.prefix`.
 
-### 4.5 Generazione template scheletro
+### 6.5 Generazione template scheletro
 
 Scrivi `templates/page.<funnel.template_name>.json` con scheletro minimo:
 
@@ -181,9 +279,9 @@ Scrivi `templates/page.<funnel.template_name>.json` con scheletro minimo:
 
 (Le sezioni verranno aggiunte progressivamente in Fase 7.)
 
-Se si è scelta la duplicazione da template esistente (4.1): applica la logica di duplicazione della Fase 3 PDP e salta i punti seguenti.
+Se si è scelta la duplicazione da template esistente (6.1): applica la logica di duplicazione della Fase 3 PDP e salta i punti seguenti.
 
-### 4.6 Push selettivo template
+### 6.6 Push selettivo template
 
 ```bash
 cd "<store.workdir_path>"
@@ -193,108 +291,21 @@ npx @shopify/cli@latest theme push \
   --only "templates/page.<funnel.template_name>.json"
 ```
 
-### 4.7 Istruzioni manuali Page in Admin
+### 6.7 Istruzioni manuali Page in Admin
 
 Mostra all'utente:
 
 ```
 Ora crea la Page in Shopify Admin:
 1. Admin → Online Store → Pages → Add page
-2. Title: "<titolo visibile della pagina>" (es. "Scopri Autoabbronzante Glowria")
+2. Title: "<titolo visibile della pagina>"
 3. Content: lascialo vuoto (le sezioni vengono dal template)
 4. In "Theme template" (sidebar destra): seleziona `<funnel.template_name>`
 5. Save
-6. Torna qui e dimmi lo slug della page (es. `scopri-autoabbronzante`), così posso riferirmi alla URL live
+6. Torna qui e dimmi lo slug della page (es. `scopri-autoabbronzante`)
 ```
 
 Salva lo slug in `funnel.page_slug`. URL live: `https://<store.shopify_domain>/pages/<funnel.page_slug>`.
-
----
-
-## Fase 5 — Scelta tipo di funnel
-
-`AskUserQuestion`: "Che tipo di funnel stiamo creando?"
-
-Opzioni:
-- **Advertorial** — articolo narrativo, storytelling personale che porta a PDP. Target freddo.
-- **Listicle** — articolo "N motivi per", benefici ordinati, confronto. Target semi-caldo.
-- **Quiz** — domande + risultato personalizzato, engagement-driven. Target freddo.
-- **Altro** — descrivi liberamente la struttura, poi forniamo esempi.
-
-Salva in `funnel.type` ∈ {`advertorial`, `listicle`, `quiz`, `other`}.
-
-Carica la struttura base di riferimento da `references/funnel-types.md` per il tipo scelto. Sarà usata come **ipotesi di partenza** in Fase 7; verrà raffinata con gli esempi competitor di Fase 6.
-
-Se `other`: chiedi all'utente una descrizione della struttura che ha in mente (numero sezioni, ordine, ruoli) — serve come punto di partenza.
-
----
-
-## Fase 6 — Raccolta materiali
-
-Presenta una checklist all'utente. Aspetta che abbia fornito tutto prima di procedere.
-
-### 6.1 Esempi competitor del tipo scelto
-
-Chiedi:
-- 2-5 **screenshot / URL** di funnel competitor dello stesso tipo.
-- Per ogni esempio, un breve contesto: perché ti piace, cosa copieresti, cosa cambieresti.
-
-Se l'utente non ha esempi pronti, suggerisci:
-- Typology hunt: swipefile.com, advertorial.com, altri aggregator.
-- Screenshot da Facebook Ads Library di funnel visti su ads recenti.
-
-Claude analizza gli esempi per:
-- Confermare/raffinare la struttura base del tipo scelto.
-- Identificare pattern di hook, claim, obiezioni, CTA.
-- Estrarre lunghezza/density media.
-
-### 6.2 Research prodotto
-
-Identica a `/create-new-pdp` Fase 4:
-- Ingredienti chiave (nome + effetto + dosaggio).
-- Claim principali (3-5 effetti del prodotto).
-- Target audience (chi, età, problema).
-- Differenziazione vs competitor.
-- Proof points (certificazioni, test clinici, numeri, recensioni reali).
-
-### 6.3 URL PDP del prodotto (OBBLIGATORIO)
-
-`AskUserQuestion` o chiedi in chiaro: "Qual è l'URL PDP del prodotto su questo store?"
-
-Esempi:
-- `https://glowria.com/products/crema-corpo-autoabbronzante-ufficiale`
-- `https://nimea.com/products/berberina-pills`
-
-Valida che:
-- Inizia con `https://`.
-- Contiene `/products/<slug>`.
-
-Salva in `funnel.cta_url`. Sarà il `href` di **TUTTI** i bottoni CTA del funnel.
-
-### 6.4 Angolo marketing corrente
-
-Chiedi:
-- 1-3 copy ads attuali (headline + descrizione).
-- Concept video se esistente (link o transcript).
-
-Serve per allineare il tono del funnel all'ads che porterà traffico.
-
-### 6.5 Brand assets extra
-
-Chiedi:
-- Logo URL CDN (se diverso da quello già nel tema).
-- Eventuali asset custom (pattern, mockup, loghi certificazioni).
-
-### 6.6 Riepilogo e conferma
-
-Fai un riepilogo sintetico:
-- Tipo funnel + struttura pianificata (N sezioni).
-- 3 claim principali prodotto.
-- 3 proof points.
-- Palette + tipografia (richiama `brand.*` da Fase 3).
-- URL CTA.
-
-Chiedi: "Tutto chiaro, procedo con la costruzione delle sezioni?"
 
 ---
 
@@ -321,8 +332,8 @@ Salva scelta in `funnel.build_mode` ∈ {`A`, `B`, `C`}.
 ### 7.1 Pianifica la lista sezioni
 
 In base a:
-- Struttura base del tipo funnel (Fase 5).
-- Aggiustamenti dagli esempi competitor (Fase 6.1).
+- Struttura base del tipo funnel (Fase 4).
+- Aggiustamenti dagli esempi competitor (Fase 5.1).
 
 Produci una lista esplicita con nome file + ruolo + note:
 
@@ -353,7 +364,7 @@ Per ogni `sections/<funnel.prefix><NN>-<ruolo>.liquid`:
    - Bottoni CTA: `background: <brand.primary>`, `color: <brand.primary_text>`, `border-radius: <brand.button_radius>`, hover più scuro.
    - Headline: `font-family: <brand.heading_font>`, `font-weight: <brand.heading_weight>`.
    - Body: `font-family: <brand.body_font>`, `color: <brand.text>`.
-3. **Testi** dal research di Fase 6.2 + ispirazione competitor (Fase 6.1), con density/lunghezza coerente al ruolo (vedi `references/funnel-types.md`).
+3. **Testi** dal research di Fase 5.2 + ispirazione competitor (Fase 5.1), con density/lunghezza coerente al ruolo (vedi `references/funnel-types.md`).
 4. **Bottoni CTA** puntano a `<funnel.cta_url>` con `<a class="<prefix>__cta" href="<funnel.cta_url>">`. Ripeti la CTA almeno 2 volte nel funnel (hero + closing minimo).
 5. **Placeholder immagini** espliciti (vedi `references/funnel-image-specs.md`): SVG data-uri con dimensioni + alt-text `IMG_PLACEHOLDER_<NN>_<ruolo>`. Non usare URL fittizi via/placeholder.com.
 6. **Schema Liquid minimo**:
