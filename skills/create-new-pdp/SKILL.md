@@ -16,20 +16,34 @@ Sei una guida passo-passo per creare una PDP Shopify da zero. Segui le 7 fasi **
 
 ## Lettura dello stato iniziale
 
-All'avvio devi trovare il file `config/stores.json` che contiene la configurazione degli store. Il path canonico è:
+All'avvio devi trovare il file `config/stores.json` del plugin.
 
+**REGOLA ASSOLUTA** — senza eccezioni, senza interpretazione:
+
+1. **NON creare MAI nessun file dentro `~/.claude/skills/`.** Quella cartella contiene solo i symlink di sviluppo. Se stai per scrivere un file il cui path contiene `.claude/skills/`, fermati subito: è sbagliato.
+2. **`stores.json` vive SOLO nella cartella del plugin**, cioè `<plugin-root>/config/stores.json`. Mai altrove.
+3. **`stores.example.json` esiste già** nel repo — non va mai creato né copiato dalla skill.
+
+**Procedura deterministica** (esegui nell'ordine, senza saltare step):
+
+```bash
+# Step A — prova path canonico
+test -f "$HOME/Desktop/shopify-pdp-builder/config/stores.json" && echo "FOUND:$HOME/Desktop/shopify-pdp-builder/config/stores.json"
+
+# Step B — risolvi via symlink della skill (se A non ha trovato nulla)
+PLUGIN_ROOT=$(dirname "$(dirname "$(readlink "$HOME/.claude/skills/create-new-pdp")")")
+test -f "$PLUGIN_ROOT/config/stores.json" && echo "FOUND:$PLUGIN_ROOT/config/stores.json"
+
+# Step C — prova il path plugin standard di Claude Code
+test -f "$HOME/.claude/plugins/shopify-pdp-builder/config/stores.json" && echo "FOUND:$HOME/.claude/plugins/shopify-pdp-builder/config/stores.json"
 ```
-/Users/<username>/Desktop/shopify-pdp-builder/config/stores.json
-```
 
-**IMPORTANTE**: questo file vive nella cartella del plugin, **NON** dentro la skill. La skill può essere stata caricata via symlink da `~/.claude/skills/create-new-pdp/` — in quel caso NON creare mai `~/.claude/skills/create-new-pdp/config/...`: quella directory non deve esistere.
+Comportamento:
 
-Procedura di ricerca:
+- Se **uno qualsiasi** degli step stampa `FOUND:<path>` → usa quel path con `Read` per leggere `stores.json` e procedi con la Fase 1.
+- Se **tutti e tre** falliscono → **FERMATI**. Non scrivere nulla. Chiedi all'utente in chiaro: "Non trovo `config/stores.json`. Dimmi il path assoluto del plugin `shopify-pdp-builder` sul tuo disco." Attendi risposta, poi ricontrolla.
 
-1. **Prova il path canonico**: `~/Desktop/shopify-pdp-builder/config/stores.json`. Leggilo con `Read`. Se esiste, procedi col punto 4.
-2. **Fallback — risolvi via symlink**: se il path canonico non esiste, lancia `readlink ~/.claude/skills/create-new-pdp` per capire dove punta il symlink. Il parent-parent di quella destinazione è il plugin root (es. `/Users/<user>/Desktop/shopify-pdp-builder`). Cerca `<plugin-root>/config/stores.json`.
-3. **Se non trovato in nessun path**: fermati. Chiedi all'utente il path del plugin `shopify-pdp-builder` sul suo disco. NON creare `stores.example.json` dentro `~/.claude/skills/` — è il posto sbagliato.
-4. Una volta trovato `stores.json`, estrai la lista degli store.
+**Mai** usare `Write` o `Edit` per creare `stores.json` o `stores.example.json`. Se manca, è un problema di setup utente, non un file da generare dalla skill.
 
 ---
 
