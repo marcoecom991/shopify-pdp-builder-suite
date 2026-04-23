@@ -1,19 +1,34 @@
 # Shopify PDP Builder
 
-Claude Code plugin che automatizza la creazione di nuove PDP Shopify partendo da un template esistente. Distribuibile a tutti i membri del team: ognuno lo installa una volta, configura i propri store, e lancia `/create-new-pdp` per ogni nuova PDP.
+Claude Code plugin che automatizza la creazione di template Shopify (PDP + Funnel) da zero. Distribuibile a tutti i membri del team: ognuno lo installa una volta, configura i propri store, e lancia uno dei comandi disponibili.
 
-## Cosa fa
+## Comandi disponibili
 
-Il comando `/create-new-pdp` guida end-to-end:
+### `/create-new-pdp`
+Crea una nuova PDP duplicando un template prodotto esistente.
 
+Flusso:
 1. **Store selection** — scegli su quale store lavorare (Nimea, Glowria, o altri configurati).
-2. **Auth check** — verifica che il tuo Theme Access token sia valido.
+2. **Auth + scelta tema** — verifica Theme Access token, mostra temi disponibili, permette di lavorare anche su tema dev/unpublished.
 3. **Duplicazione template** — sceglie un template PDP esistente, lo duplica con nuovo nome, duplica tutte le sezioni con prefisso derivato.
-4. **Push selettivo** — pubblica solo i file nuovi sul tema live.
-5. **Raccolta materiali** — ti chiede competitor PDP, transcript, research prodotto, angle, brand assets.
-6. **Popolamento testi** — sezione per sezione incolli l'HTML di riferimento, Claude sostituisce SOLO testi (mai markup).
-7. **Guida immagini** — per ogni sezione ti dice cosa caricare, in che dimensioni, che tipo di foto.
-8. **Verifica finale** — checklist mobile/desktop, console errors, URL live.
+4. **Push selettivo** — pubblica solo i file nuovi sul tema.
+5. **Raccolta materiali** — competitor PDP, transcript, research prodotto, angle, brand assets.
+6. **Riscrittura testi** — modalità sezione-per-sezione, batch, o misto. I testi del prodotto base vengono riscritti per il nuovo prodotto, mantenendo layout/CSS/JS identici.
+7. **Guida immagini** — brief per sezione con dimensioni/ratio corretti.
+8. **Verifica finale** — checklist mobile/desktop, URL live.
+
+### `/create-new-funnel`
+Crea una nuova pagina funnel (advertorial, listicle, quiz, custom) **da zero**.
+
+Flusso:
+1. **Store selection** — stesso meccanismo di PDP.
+2. **Auth + scelta tema** — come PDP.
+3. **Brand identity discovery** — la skill chiede quale PDP usare come riferimento, estrae palette colori + tipografia dal tema, chiede conferma.
+4. **Creazione template** — nome, layout (chromeless senza header/footer, o `theme` con chrome), prefisso sezioni. Push del template scheletro.
+5. **Tipo di funnel** — advertorial / listicle / quiz / altro. Carica la struttura base di partenza.
+6. **Raccolta materiali** — esempi competitor del tipo scelto, research prodotto, **URL PDP** del prodotto (per le CTA), angolo marketing, brand assets extra.
+7. **Costruzione sezioni** — modalità sezione-per-sezione / batch / misto. Claude crea sezioni responsive mobile+desktop usando palette e font del brand, testo dal research, bottoni CTA → PDP.
+8. **Guida immagini** — brief per sezione con dimensioni/ratio.
 
 ## Setup (primo utilizzo, una volta per membro)
 
@@ -95,10 +110,11 @@ Copia `config/stores.example.json` → `config/stores.json` e metti i path reali
 In una nuova conversazione Claude Code:
 
 ```
-/create-new-pdp
+/create-new-pdp       # per una nuova pagina prodotto
+/create-new-funnel    # per un funnel (advertorial/listicle/quiz)
 ```
 
-Dovrebbe partire dal prompt di scelta store.
+Dovrebbero partire entrambi dal prompt di scelta store.
 
 ## Aggiornamenti
 
@@ -121,22 +137,35 @@ Ogni membro genera il **proprio** Theme Access token — audit Shopify traccia o
 ```
 shopify-pdp-builder/
 ├── .claude-plugin/plugin.json     # Manifest plugin
-├── skills/create-new-pdp/
-│   ├── SKILL.md                   # Orchestrator — 7 fasi guidate
-│   └── references/
-│       ├── workflow-faithful-rebuild.md
-│       ├── auth-pattern.md
-│       ├── selective-push.md
-│       ├── section-naming.md
-│       └── image-specs-per-section.md
+├── skills/
+│   ├── create-new-pdp/            # Comando PDP
+│   │   ├── SKILL.md
+│   │   └── references/ (5 file)
+│   └── create-new-funnel/         # Comando Funnel
+│       ├── SKILL.md
+│       └── references/ (7 file)
 ├── config/
 │   ├── stores.example.json        # Template (committato)
 │   └── stores.json                # Reale (NON committato)
-├── scripts/setup-store.sh         # Helper per creare .env
+├── scripts/setup-store.sh
 ├── .env.example
 ├── .gitignore
 └── README.md
 ```
+
+Reference files per skill:
+
+`skills/create-new-pdp/references/` (5 file):
+- `workflow-faithful-rebuild.md` — regola "non riscrivere markup, solo testi"
+- `auth-pattern.md`, `selective-push.md`, `section-naming.md` — infrastruttura condivisa
+- `image-specs-per-section.md` — specs immagini PDP
+
+`skills/create-new-funnel/references/` (7 file):
+- `funnel-types.md` — struttura advertorial/listicle/quiz
+- `brand-identity-discovery.md` — estrazione colori/font da una PDP esistente
+- `page-template-layout.md` — chromeless vs theme layout
+- `funnel-image-specs.md` — specs immagini per funnel
+- `auth-pattern.md`, `selective-push.md`, `section-naming.md` — copie infrastruttura
 
 ## Troubleshooting
 
