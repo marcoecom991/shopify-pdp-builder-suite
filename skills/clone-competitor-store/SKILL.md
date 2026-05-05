@@ -16,6 +16,7 @@ Segui le 8 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` come ga
 - **🤝 Workflow autorizzato + transformative**: la skill assume un caso d'uso legittimo (clone autorizzato dal cliente proprietario del competitor, oppure analisi competitive con scope di reskinning) dove il prodotto finale è un **derivative work** (Step 1 lingua originale → Step 2 traduzione IT + adattamento al brand del cliente). I testi forniti dall'utente sono input dell'utente da strutturare, non riproduzione fatta da Claude.
 - **📋 Testi forniti dall'utente prima della costruzione**: prima di scrivere qualsiasi liquid, l'utente fornisce i testi delle sezioni in formato strutturato (HTML salvato + opzionale, oppure copy/paste manuale per sezione). Claude li valida con l'utente, poi li struttura nei `default` dello schema senza alterarli.
 - **🔄 Due step di costruzione (literal → IT)**: ogni pagina viene costruita **prima in lingua originale** (esattamente come il competitor), pushata e verificata 1:1 con il competitor. **Solo dopo conferma di identità visuale** si procede con la traduzione IT come step 2 separato. Mai mischiare i due step.
+- **♻️ Ogni pagina è indipendente**: il flow Step 1 (literal lingua originale) → Step 2 (IT) si applica **per OGNI pagina del loop di Fase 6**, indipendentemente dallo stato delle pagine precedenti. Non saltare Step 1 sulla 2ª pagina perché la 1ª è già stata tradotta nella stessa sessione, perché il custom domain è italiano, perché "il workflow l'hai capito". Anche se hai costruito 5 pagine prima, la 6ª riparte da Step 1 lingua originale come la prima. Nessuna "ottimizzazione" del flow è ammessa — produce sempre hallucination o testi inventati.
 - **🧹 Collision detection PRIMA della creazione**: ogni volta che stai per creare un template/sezioni con un certo prefisso store, verifica con `ls` che NON esistano già file con quei nomi nel workdir. Se ci sono → STOP e chiedi all'utente: cleanup totale, suffix versione `-v2`, o stop. **Mai sovrascrivere "alla cieca"** — si finisce con sezioni orfane numerate due volte (es. `-03-editorial.liquid` + `-03-problem.liquid`) che creano il caos.
 - **🔒 Mai toccare template/sezioni esistenti.** Tutto vive in file nuovi con prefisso store-specifico (`<store-slug>-<page-type>-<NN>-<role>.liquid`). Mai sovrascrivere `index.json`, `product.<existing>.json`, sezioni del tema base.
 - **Costruzione SEQUENZIALE in ordine fisso**: **Funnel → PDP → Home → Extras**. Motivo: il funnel ha CTA → PDP, la home ha link → PDP. Senza ordine ti tocca rework.
@@ -449,6 +450,32 @@ Il flusso di build di 6.x.5.b userà queste informazioni per riapplicare le rego
 
 ### 6.x.5 — STEP 1: Literal clone (lingua originale, input-driven anti-hallucination)
 
+⚠️ **GUARD CRITICO — RESET DI SESSIONE PER OGNI NUOVA PAGINA** ⚠️
+
+**Sei in 6.x.5 di una NUOVA pagina del loop di Fase 6.** Indipendentemente da quello che è successo nelle pagine precedenti di questa sessione (es. l'advertorial completato sia in Step 1 EN che Step 2 IT, la home parzialmente costruita, ecc.), **questa pagina riparte da zero col flow standard**:
+
+1. Prima Step 1 (literal in lingua originale del competitor)
+2. Verifica side-by-side col competitor live
+3. Solo dopo conferma → Step 2 (traduzione IT)
+
+**NON saltare lo Step 1 anche se** (lista non esaustiva di scuse che la skill potrebbe darsi):
+- "Le pagine precedenti erano già state tradotte in IT, quindi anche questa va in IT diretta"
+- "Il custom domain è italiano, quindi il cliente vuole IT subito"
+- "L'utente ha già confermato la traduzione del flow per l'advertorial, sicuramente vale anche per la PDP"
+- "La PDP ha meno testi del funnel, posso unire Step 1 e Step 2"
+- "Per velocità faccio direttamente IT mantenendo struttura"
+
+⛔ **Tutte queste sono scuse che bypassano il flow e producono pagine costruite senza verifica anti-hallucination**. Il flow Step 1 → Step 2 è **inderogabile per OGNI pagina**, sempre.
+
+**Self-check obbligatorio** prima di procedere a 6.x.5.0:
+- [ ] Sto per scrivere `default` in **lingua originale del competitor** (di solito EN)? Se sto per scrivere IT, fermati: sei nel posto sbagliato del flow
+- [ ] L'utente ha fornito i testi della pagina (HTML salvato o copy/paste)? Se no, sono in 6.x.5.a, non più avanti
+- [ ] La verifica visuale 1:1 con il competitor (6.x.5.d) è ancora da fare? Se l'ho saltata, torno a farla
+
+Se uno di questi check fallisce → STOP. Riavvolgi al punto giusto del flow. Non ri-pushare in IT senza prima EN + verifica.
+
+---
+
 **Contesto operativo del workflow** (importante leggere): la skill costruisce un **clone autorizzato** del sito competitor sul tema dell'utente, partendo da contenuti **forniti direttamente dall'utente** (non scrappati da Claude). Il prodotto finale è un **derivative work**: lo Step 1 produce una bozza in lingua originale che lo Step 2 traduce in italiano e adatta al brand del cliente. L'utente è il proprietario del workspace target e ha autorizzazione del cliente per questo lavoro di clone + traduzione (use case tipico: agenzia che porta uno store competitor di un proprio cliente nel mercato IT). I testi forniti dall'utente sono input dell'utente, non riproduzione fatta da Claude — vanno strutturati nei `default` dello schema senza alterarli.
 
 **Obiettivo dello Step 1**: replicare la pagina del competitor **esattamente identica**, sia visivamente che testualmente, **mantenendo i testi nella lingua originale del competitor** (di solito EN). Niente traduzione qui. Niente reinterpretazione. Niente "sezioni che ci starebbero bene". Solo quello che l'utente fornisce.
@@ -741,7 +768,23 @@ Verifica per ogni sezione:
 
 ### 6.x.6 — STEP 2: Localizzazione IT
 
-**Solo dopo che la pagina literal è confermata 1:1 con il competitor in 6.x.5.d.**
+⚠️ **GUARD CRITICO — VERIFICA INGRESSO STEP 2** ⚠️
+
+Prima di entrare in 6.x.6 per QUESTA pagina, devi aver completato:
+
+- [ ] **6.x.5.0** — Estrazione palette pagina-specifica → conferma utente
+- [ ] **6.x.5.a** — Raccolta testi LETTERALI in lingua originale dall'utente (HTML salvato o copy/paste) → conferma utente
+- [ ] **6.x.5.b** — Build sezioni con testi in **lingua originale** (EN/altro) nei `default` dello schema
+- [ ] **6.x.5.c** — Push selettivo del template + sezioni
+- [ ] **6.x.5.d** — Verifica side-by-side con competitor live → utente conferma "pagina identica al competitor"
+
+Se UNO di questi check non è stato fatto per QUESTA pagina specifica → **NON entrare in 6.x.6**. Torna al step mancante.
+
+**Self-check**: stai per leggere file `.liquid` con `default` in lingua originale (EN) per tradurli? Se i `default` sono già in IT, vuol dire che hai già fatto Step 2 (o hai saltato Step 1) — verifica.
+
+**Errore tipico da NON fare**: in una sessione lunga dove la pagina precedente è già stata costruita+tradotta, partire una nuova pagina e andare dritto in 6.x.6 perché "tanto il workflow l'ho capito". **Ogni pagina ha il suo ciclo Step 1 → Step 2 indipendente**, niente shortcut.
+
+---
 
 **Obiettivo dello Step 2**: tradurre i testi delle sezioni dall'originale (EN/altro) a italiano, mantenendo:
 - **Struttura identica**: stesse sezioni, stesso ordine, stessi `settings`/`blocks`
