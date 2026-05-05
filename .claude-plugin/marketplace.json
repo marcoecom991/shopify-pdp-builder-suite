@@ -7,8 +7,8 @@
     {
       "name": "shopify-pdp-builder",
       "source": "./",
-      "description": "Automatizza la creazione di PDP e funnel Shopify su più store: scelta store, check auth, duplicazione template/sezioni con liquidify automatico, brand identity discovery, costruzione sezioni editabili da theme editor, push live.",
-      "version": "0.2.0"
+      "description": "Automatizza la creazione di PDP, funnel e clone integrale di store competitor su Shopify: scelta store, check auth, duplicazione template/sezioni con liquidify automatico, brand identity discovery (anche da URL competitor), replica visuale 1:1, costruzione sezioni editabili da theme editor con supporto app blocks, push live.",
+      "version": "0.3.0"
     }
   ]
 }
