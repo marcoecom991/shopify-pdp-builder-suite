@@ -10,16 +10,21 @@ Non è "ispirato a" — è "uguale a". L'utente avrà investito tempo nello sceg
 
 ## 🚫 Regola anti-hallucination (la più importante)
 
-**Replica SOLO quello che vedi.** Niente sezioni "che ci starebbero bene", niente bullet "che potrebbero esserci", niente claim "tipici di un advertorial". Se nello screenshot ci sono 7 sezioni, la pagina ha 7 sezioni. Se una sezione ha 3 bullet, ne ha 3. Se un titolo recita "The cream that finally works", il titolo è "The cream that finally works".
+**Replica SOLO quello che l'utente fornisce.** Niente sezioni "che ci starebbero bene", niente bullet "che potrebbero esserci", niente claim "tipici di un advertorial". Se l'utente fornisce 7 sezioni di testi, lo schema ha 7 sezioni. Se per una sezione fornisce 3 bullet, lo schema ha 3 bullet. Se il titolo che fornisce è "The cream that finally works", lo schema mostra "The cream that finally works".
+
+**Divisione delle responsabilità**:
+- **L'utente**: fornisce i testi di ogni sezione (HTML salvato o copy/paste manuale dal sito competitor) in Fase 6.x.5.a.
+- **Claude**: costruisce HTML+CSS della sezione che riproduce il layout dello screenshot, e mette i testi forniti dall'utente nei `default` dello schema **senza alterarli**.
 
 Conseguenze pratiche:
 
-- **Mai compilare i `default` dello schema con testi inventati.** I `default` devono essere ESATTAMENTE i testi estratti dallo screenshot in fase 6.x.5.a (lingua originale).
+- **Mai compilare i `default` con testi inventati.** I `default` sono ESATTAMENTE quello che l'utente ha fornito in 6.x.5.a, parola per parola.
+- **Mai usare gli screenshot come fonte testuale.** Gli screenshot servono per il layout (capire posizioni, ordine, dimensioni). Per i testi → chiedi all'utente.
 - **Mai aggiungere sezioni "perché aiuterebbe la conversione".** Stiamo clonando, non ottimizzando. L'ottimizzazione viene dopo, in iterazioni separate.
-- **Mai parafrasare.** Se l'utente vuole un wording diverso, lo cambia in step 2 (localizzazione IT) o in iterazione successiva. Lo step 1 è puramente literal.
-- **Se non riesci a leggere un testo** (sfocato, troppo piccolo, fuori dal viewport): FERMATI. Marca `[NON LEGGIBILE]` e chiedi zoom. Non interpretare. Non immaginare.
+- **Mai parafrasare** i testi forniti. Se l'utente vuole un wording diverso, lo cambia lui in chat o in step 2 (localizzazione IT).
+- **Se ti manca un testo** per una sezione: FERMATI e chiedilo all'utente. Non interpretare. Non immaginare.
 
-Sintomo che la regola non sta funzionando: i `default` dello schema contengono frasi tipo "Discover the secret" / "Unlock your potential" / "Transform your skin today" che sono chiaramente generiche e non specifiche del competitor reale. Se vedi queste frasi nei tuoi `default`, **stop e ricomincia dall'estrazione**.
+Sintomo che la regola non sta funzionando: i `default` dello schema contengono frasi tipo "Discover the secret" / "Unlock your potential" / "Transform your skin today" che sono chiaramente generiche e non sono nei testi che l'utente ha fornito. Se vedi queste frasi nei tuoi `default`, **stop e torna a chiedere i testi all'utente**.
 
 ## Materiali in input
 

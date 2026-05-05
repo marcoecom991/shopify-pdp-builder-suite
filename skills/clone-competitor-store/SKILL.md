@@ -11,9 +11,10 @@ Segui le 8 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` come ga
 
 ## Principi generali (HARD RULES)
 
-- **🚫 Anti-hallucination assoluto** (regola più importante): replica SOLO quello che vedi negli screenshot competitor. Niente sezioni "che ci starebbero bene", niente testi "tipici di una hero", niente claim "che il competitor probabilmente dice". Se non lo vedi, non lo metti. Se non riesci a leggere un testo, FERMA e chiedi zoom — non inventare.
-- **📸 Screenshot OBBLIGATORI**: senza screenshot full-page (mobile + desktop) di una pagina, non si procede a costruirla. WebFetch da solo non basta — porta a hallucinations. Niente fallback "lavoro da quello che ho".
-- **📋 Estrazione letterale prima della costruzione**: prima di scrivere qualsiasi liquid, estrai sistematicamente tutti i testi visibili dagli screenshot in tabelle e validali con l'utente. Solo dopo OK si costruisce.
+- **🚫 Anti-hallucination assoluto** (regola più importante): replica SOLO quello che l'utente fornisce. Niente sezioni "che ci starebbero bene", niente testi "tipici di una hero", niente claim "che il competitor probabilmente dice". Se l'utente non te lo dà, non lo metti. Se ti manca un'informazione, FERMA e chiedila — non inventare.
+- **📸 Screenshot per il LAYOUT, NON per il testo**: gli screenshot mobile + desktop servono per ricostruire il design visivo (struttura, spacing, tipografia, layout). I TESTI invece li fornisce l'utente direttamente (HTML salvato o copy/paste manuale dal sito competitor). Claude non fa OCR sui testi degli screenshot — il downscaling rende OCR inaffidabile e porta a hallucination.
+- **🤝 Workflow autorizzato + transformative**: la skill assume un caso d'uso legittimo (clone autorizzato dal cliente proprietario del competitor, oppure analisi competitive con scope di reskinning) dove il prodotto finale è un **derivative work** (Step 1 lingua originale → Step 2 traduzione IT + adattamento al brand del cliente). I testi forniti dall'utente sono input dell'utente da strutturare, non riproduzione fatta da Claude.
+- **📋 Testi forniti dall'utente prima della costruzione**: prima di scrivere qualsiasi liquid, l'utente fornisce i testi delle sezioni in formato strutturato (HTML salvato + opzionale, oppure copy/paste manuale per sezione). Claude li valida con l'utente, poi li struttura nei `default` dello schema senza alterarli.
 - **🔄 Due step di costruzione (literal → IT)**: ogni pagina viene costruita **prima in lingua originale** (esattamente come il competitor), pushata e verificata 1:1 con il competitor. **Solo dopo conferma di identità visuale** si procede con la traduzione IT come step 2 separato. Mai mischiare i due step.
 - **🧹 Collision detection PRIMA della creazione**: ogni volta che stai per creare un template/sezioni con un certo prefisso store, verifica con `ls` che NON esistano già file con quei nomi nel workdir. Se ci sono → STOP e chiedi all'utente: cleanup totale, suffix versione `-v2`, o stop. **Mai sovrascrivere "alla cieca"** — si finisce con sezioni orfane numerate due volte (es. `-03-editorial.liquid` + `-03-problem.liquid`) che creano il caos.
 - **🔒 Mai toccare template/sezioni esistenti.** Tutto vive in file nuovi con prefisso store-specifico (`<store-slug>-<page-type>-<NN>-<role>.liquid`). Mai sovrascrivere `index.json`, `product.<existing>.json`, sezioni del tema base.
@@ -225,31 +226,33 @@ Loop sull'array `scope.pages_ordered` calcolato in Fase 3, in ordine fisso (Funn
 
 Per ogni pagina, esegui il sub-workflow 6.x:
 
-### 6.x.1 — Input materiali competitor (SCREENSHOT OBBLIGATORI)
+### 6.x.1 — Input materiali competitor
 
-**Regola d'oro**: senza screenshot leggibili, **non si procede**. WebFetch da solo non basta — molti competitor usano JS rendering, lazy loading, A/B test, paywall che restituiscono HTML scarno o diverso da ciò che l'utente vede. Lavorare solo da WebFetch porta inevitabilmente ad **hallucinare** testi e sezioni che non esistono. Vietato.
+**Strategia di input**: gli screenshot servono per il **layout visivo** (capire come sono fatte le sezioni, ordine, spacing, tipografia, colori). I **testi** invece arrivano dall'utente direttamente in formato strutturato — gli screenshot full-page compressi sono inaffidabili per OCR e Claude finirebbe per inventare. Sono due input separati, raccolti in 2 fasi:
 
-Chiedi all'utente:
+**Materiali per il LAYOUT** (richiesti adesso, in Fase 6.x.1):
 
 ```
 === Pagina <N>/<TOT>: <tipo pagina> ===
 
-Per replicarla 1:1 mi servono OBBLIGATORI:
-  1. Screenshot DESKTOP dell'intera pagina (full-page, non solo viewport — usa
-     "Capture full page" del tuo browser o tool come GoFullPage)
-  2. Screenshot MOBILE dell'intera pagina (full-page, viewport 375-414px)
-  3. URL competitor (riconfermami quello già salvato in Fase 4 o cambia)
+Per ricostruire il LAYOUT visuale 1:1 mi servono:
+  1. Screenshot DESKTOP della pagina (uno full-page lungo va bene, oppure 
+     5-10 screenshot di sezione singola — preferisci la seconda opzione 
+     se la pagina è molto lunga, perché ogni sezione resta in alta risoluzione)
+  2. Screenshot MOBILE della pagina (stesso discorso)
+  3. URL competitor (per riferimento)
 
-Senza screenshot non posso lavorare in modo affidabile: rischierei di inventare
-testi e sezioni che non esistono.
+Gli screenshot servono solo per capire il design — i testi me li darai 
+separatamente in Fase 6.x.5.a in formato strutturato (HTML salvato o 
+copy/paste manuale) per evitare errori di lettura.
 ```
 
-⚠️ **Se l'utente prova a procedere senza screenshot**: rifiuta e ripeti la richiesta. Non costruire la pagina basandoti SOLO su WebFetch.
+**Materiali per i TESTI** (richiesti dopo, in Fase 6.x.5.a — vedi sotto). Non chiederli ora.
 
-⚠️ **Se gli screenshot sono di scarsa qualità** (sfocati, viewport tagliato, mobile non full-page): chiedi nuovi screenshot prima di procedere. Non interpretare a vista — chiedi.
+⚠️ **Se l'utente fornisce screenshot di scarsa qualità** (sfocati, viewport tagliato): chiedi sostituzione prima di procedere. Per il layout serve qualità visibile.
 
 Salva in:
-- `current_page.screenshots.desktop` (path/ID immagine)
+- `current_page.screenshots.desktop` (path/ID immagine o array se multi-section)
 - `current_page.screenshots.mobile`
 - `current_page.url`
 
@@ -369,59 +372,79 @@ Salva in `current_page.build_mode` ∈ {`A`, `B`}.
 
 ---
 
-### 6.x.5 — STEP 1: Literal clone (lingua originale, anti-hallucination)
+### 6.x.5 — STEP 1: Literal clone (lingua originale, input-driven anti-hallucination)
 
-**Obiettivo dello Step 1**: replicare la pagina del competitor **esattamente identica**, sia visivamente che testualmente, **mantenendo i testi nella lingua originale del competitor** (di solito EN). Niente traduzione qui. Niente reinterpretazione. Niente "sezioni che ci starebbero bene". Solo quello che si vede negli screenshot.
+**Contesto operativo del workflow** (importante leggere): la skill costruisce un **clone autorizzato** del sito competitor sul tema dell'utente, partendo da contenuti **forniti direttamente dall'utente** (non scrappati da Claude). Il prodotto finale è un **derivative work**: lo Step 1 produce una bozza in lingua originale che lo Step 2 traduce in italiano e adatta al brand del cliente. L'utente è il proprietario del workspace target e ha autorizzazione del cliente per questo lavoro di clone + traduzione (use case tipico: agenzia che porta uno store competitor di un proprio cliente nel mercato IT). I testi forniti dall'utente sono input dell'utente, non riproduzione fatta da Claude — vanno strutturati nei `default` dello schema senza alterarli.
+
+**Obiettivo dello Step 1**: replicare la pagina del competitor **esattamente identica**, sia visivamente che testualmente, **mantenendo i testi nella lingua originale del competitor** (di solito EN). Niente traduzione qui. Niente reinterpretazione. Niente "sezioni che ci starebbero bene". Solo quello che l'utente fornisce.
 
 La traduzione IT è uno STEP 2 separato (Fase 6.x.6) che parte SOLO dopo che hai verificato che la pagina clonata è 1:1 visivamente identica al competitor.
 
-#### 6.x.5.a — Estrazione letterale dei testi (anti-hallucination)
+#### 6.x.5.a — Raccolta testi letterali dall'utente (NO scraping da parte di Claude)
 
-Prima di scrivere una singola riga di liquid, **estrai SISTEMATICAMENTE tutti i testi visibili** dagli screenshot per ogni sezione mappata in 6.x.2.
+⚠️ **Cambio di paradigma rispetto a versioni precedenti della skill**: la skill **NON estrae** testi né dagli screenshot via OCR né dal markup HTML del competitor via WebFetch. È l'**utente** che fornisce i testi. Claude li struttura nello schema senza alterarli.
 
-Per ogni sezione, produci una tabella estrazione:
+Motivo del cambio:
+- Anti-hallucination: gli screenshot full-page ridotti perdono leggibilità → OCR sbaglia → Claude riempie i buchi con testo plausibile → catastrofe.
+- Il workflow corretto è quello dei team marketing professionali: il copy lo seleziona/copia il responsabile, non un agente automatico.
+- Il modello che esegue la skill ha guardrail conservativi sull'estrazione di testi proprietari da fonti terze. Se l'utente fornisce i testi direttamente, sono "input dell'utente" — pienamente legittimi da strutturare nello schema.
 
+**Procedura per la raccolta**:
+
+Chiedi all'utente di fornire i testi delle sezioni in **uno** dei seguenti formati (in ordine di preferenza):
+
+**Formato A — HTML salvato della pagina competitor (Recommended se autorizzato)**
+
+L'utente apre la pagina competitor su Chrome → `Cmd+S` → "Webpage, Complete" → salva il file `.html` → te lo manda in chat (o ti dice il path).
+
+Tu leggi il file con `Read`. È testo strutturato, deterministico, niente OCR. Da lì estrai per ogni sezione i testi visibili (`<h*>`, `<p>`, `<a>`, `<button>`, `<li>`, `alt=`, ecc.) e li strutturi nei `default` dello schema in 6.x.5.b.
+
+**Formato B — Copy/paste manuale per sezione (sempre disponibile)**
+
+Per ogni sezione mappata in 6.x.2 chiedi all'utente:
 ```
 === Sezione 02 — hero ===
 
-CAMPO              | TESTO LETTERALE (lingua originale)
--------------------|-------------------------------------------
-Headline           | "The cream that finally works"
-Subheadline        | "Visible results in 28 days, 100% money-back guarantee"
-CTA primary label  | "Get yours now"
-CTA primary link   | https://competitor.com/products/cream
-Eyebrow text       | "AS SEEN ON"
-Trust badge 1      | "✓ Free shipping"
-Trust badge 2      | "✓ 30-day refund"
-Image description  | "Foto donna 30-40 anni che si applica crema viso, sfondo crema chiaro"
+Selezionando manualmente il testo dal sito competitor (Cmd+A su quella sezione → Cmd+C → Cmd+V qui), incollami:
 
-(altri elementi visibili — non lasciare niente fuori)
+  Headline:           ___
+  Subheadline:        ___
+  Eyebrow text:       ___
+  CTA primary label:  ___
+  CTA primary link:   ___ (URL completo dell'href del bottone)
+  Trust badges:       ___ (uno per riga)
+  Other elements:     ___ (qualsiasi altro testo visibile)
+
+Salta le righe che non esistono nella sezione.
 ```
 
-**Regole per l'estrazione**:
+L'utente incolla. Tu strutturi.
 
-1. **Trascrivere LETTERALMENTE** ogni testo visibile nello screenshot. Nessuna parafrasi. Nessuna correzione di typos del competitor (li lasci come sono — se scrivono "Get youtrs now" con typo, lo trascrivi "Get youtrs now"; lo correggerai forse nello Step 2).
-2. **Lingua originale**: se il competitor è US, i testi sono in inglese. Se è francese, in francese. Mantieni così.
-3. **Non inventare campi**: se una sezione ha 3 bullet points, la tabella ha 3 righe bullet. Non 4, non 5. Niente "potrebbe esserci anche un quarto bullet che ci starebbe".
-4. **Se non riesci a leggere un testo** (sfocato, troppo piccolo, fuori dallo screenshot, dietro a un overlay): NON inventarlo. Marca la riga come `[NON LEGGIBILE — chiedi zoom]` e procedi con la prossima sezione. Alla fine raccogli tutti i `[NON LEGGIBILE]` e chiedi all'utente in un colpo solo: "Mi servono questi zoom su queste aree specifiche."
-5. **Numeri e claim specifici** vanno trascritti esattamente: "47% reduction in 28 days" non diventa "significant reduction in a few weeks".
-6. **Recensioni / testimonial**: trascrivi parola per parola. Nome dell'autore, città, foto: indica solo che esistono ("Foto donna ~50 anni, capelli corti, sorridente"). NON copiare nomi e città reali del competitor — quei testimonial sono di **clienti del competitor**, non nostri (vedi `references/localization-it.md` per regole).
-7. **Footer e disclaimer legali**: trascrivi anche questi (servirà per la struttura, ma in Step 2 li adatteremo ai nostri dati aziendali).
+**Formato C — Copy/paste libero, tu strutturi (per pagine semplici)**
 
-**Mostra all'utente la tabella di TUTTE le sezioni** (in formato compatto se sono molte) e chiedi con `AskUserQuestion`:
-- **Sì, l'estrazione è corretta** → procedi a 6.x.5.b
-- **Correggo alcune righe** → l'utente indica le correzioni, applica e ripresenta
-- **Mi mancano zoom su queste aree** → l'utente manda nuovi screenshot zoomati, riprocessa
+L'utente incolla un blob di testo per sezione (senza struttura precisa). Tu identifichi heading, subheading, CTA, ecc. dal contesto (lo capisci dalla formattazione — heading di solito è la prima riga, CTA è in stile diverso). Mostra all'utente la struttura proposta e fai confermare prima di procedere.
 
-⚠️ **Stop critico**: non procedere oltre se ci sono righe `[NON LEGGIBILE]` non risolte. La hallucination su testi non leggibili è esattamente quello che vogliamo evitare. Se l'utente dice "vai avanti con quello che hai" → metti placeholder esplicito tipo `[testo originale non leggibile — verificare]` nel `default` dello schema, NON inventare.
+**Regole comuni a tutti i formati**:
 
-Salva in `current_page.literal_extraction[<NN>]` la tabella per ogni sezione.
+1. **I testi vanno nei `default` dello schema così come l'utente li fornisce**. Niente parafrasi. Niente correzioni di typos. Niente "miglioramenti".
+2. **Lingua originale**: se l'utente fornisce inglese, lo schema mostra inglese. Se francese, francese. La traduzione IT è Step 2.
+3. **Non aggiungere sezioni/campi che l'utente non ha fornito**. Se la mappatura ha 3 bullet e l'utente ne fornisce 3, lo schema ha 3 bullet. Niente di più.
+4. **Se mancano testi** per qualche sezione mappata: chiedi esplicitamente all'utente "mi mancano i testi di queste sezioni: <lista>". Non inventare. Non procedere fino a quando non li hai.
+5. **Recensioni / testimonial**: l'utente decide se passare i testimonial reali del competitor (anche con nomi/foto), placeholder generici ("[testimonial]"), o se rimuovere la sezione (preferibile se non ha testimonianze proprie). Mai trasferire automaticamente nomi/foto reali — sono identità di terzi.
+6. **Footer / disclaimer legali**: chiedi se l'utente vuole il testo del competitor come riferimento di struttura (poi sostituiremo coi suoi dati aziendali in Step 2) o se vuole già metterli in versione finale (suoi dati).
 
-#### 6.x.5.b — Build sezioni con testi letterali
+Salva i testi raccolti in `current_page.user_provided_texts[<NN>]` per ogni sezione.
+
+**Mostra all'utente il riepilogo** dei testi raccolti, sezione per sezione, e chiedi con `AskUserQuestion`:
+- **Tutto corretto, procedi alla build** → vai a 6.x.5.b
+- **Correggo alcune righe** → l'utente indica cosa cambiare
+- **Mi manca questa sezione** → l'utente la fornisce e ripresenti
+
+#### 6.x.5.b — Build sezioni con testi forniti dall'utente
 
 Per ogni sezione in `current_page.sections`, scrivi `sections/<current_page.section_prefix>-<NN>-<role>.liquid` rispettando le regole specificate sotto.
 
-**Inserisci nei `default` dello schema ESATTAMENTE i testi estratti in 6.x.5.a**, lingua originale. Non tradurre. Non parafrasare. Non aggiungere sezioni o campi che non esistono nell'estrazione.
+**Inserisci nei `default` dello schema ESATTAMENTE i testi che l'utente ha fornito in 6.x.5.a**, lingua originale. Non tradurre. Non parafrasare. Non aggiungere sezioni o campi che non l'utente ha fornito.
 
 **Regole per ogni sezione costruita** (rispettare TUTTE):
 
