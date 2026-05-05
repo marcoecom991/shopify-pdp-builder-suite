@@ -4,9 +4,22 @@ Riferimento per Fase 6.x.5 di `/clone-competitor-store`. Spiega come, dato uno s
 
 ## Obiettivo
 
-Output finale: una sezione liquid del nostro tema che, quando renderizzata sul nostro store, è **visivamente indistinguibile** dalla sezione corrispondente del competitor. Stessi colori, font, spacing, layout, micro-interazioni.
+Output finale: una sezione liquid del nostro tema che, quando renderizzata sul nostro store, è **visivamente indistinguibile** dalla sezione corrispondente del competitor. Stessi colori, font, spacing, layout, micro-interazioni. Stessi testi (in lingua originale prima, IT dopo).
 
 Non è "ispirato a" — è "uguale a". L'utente avrà investito tempo nello scegliere quel competitor perché funziona; il nostro lavoro è non perdere niente del valore di quella scelta.
+
+## 🚫 Regola anti-hallucination (la più importante)
+
+**Replica SOLO quello che vedi.** Niente sezioni "che ci starebbero bene", niente bullet "che potrebbero esserci", niente claim "tipici di un advertorial". Se nello screenshot ci sono 7 sezioni, la pagina ha 7 sezioni. Se una sezione ha 3 bullet, ne ha 3. Se un titolo recita "The cream that finally works", il titolo è "The cream that finally works".
+
+Conseguenze pratiche:
+
+- **Mai compilare i `default` dello schema con testi inventati.** I `default` devono essere ESATTAMENTE i testi estratti dallo screenshot in fase 6.x.5.a (lingua originale).
+- **Mai aggiungere sezioni "perché aiuterebbe la conversione".** Stiamo clonando, non ottimizzando. L'ottimizzazione viene dopo, in iterazioni separate.
+- **Mai parafrasare.** Se l'utente vuole un wording diverso, lo cambia in step 2 (localizzazione IT) o in iterazione successiva. Lo step 1 è puramente literal.
+- **Se non riesci a leggere un testo** (sfocato, troppo piccolo, fuori dal viewport): FERMATI. Marca `[NON LEGGIBILE]` e chiedi zoom. Non interpretare. Non immaginare.
+
+Sintomo che la regola non sta funzionando: i `default` dello schema contengono frasi tipo "Discover the secret" / "Unlock your potential" / "Transform your skin today" che sono chiaramente generiche e non specifiche del competitor reale. Se vedi queste frasi nei tuoi `default`, **stop e ricomincia dall'estrazione**.
 
 ## Materiali in input
 

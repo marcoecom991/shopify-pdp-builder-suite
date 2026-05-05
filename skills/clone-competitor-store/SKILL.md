@@ -11,12 +11,15 @@ Segui le 8 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` come ga
 
 ## Principi generali (HARD RULES)
 
+- **🚫 Anti-hallucination assoluto** (regola più importante): replica SOLO quello che vedi negli screenshot competitor. Niente sezioni "che ci starebbero bene", niente testi "tipici di una hero", niente claim "che il competitor probabilmente dice". Se non lo vedi, non lo metti. Se non riesci a leggere un testo, FERMA e chiedi zoom — non inventare.
+- **📸 Screenshot OBBLIGATORI**: senza screenshot full-page (mobile + desktop) di una pagina, non si procede a costruirla. WebFetch da solo non basta — porta a hallucinations. Niente fallback "lavoro da quello che ho".
+- **📋 Estrazione letterale prima della costruzione**: prima di scrivere qualsiasi liquid, estrai sistematicamente tutti i testi visibili dagli screenshot in tabelle e validali con l'utente. Solo dopo OK si costruisce.
+- **🔄 Due step di costruzione (literal → IT)**: ogni pagina viene costruita **prima in lingua originale** (esattamente come il competitor), pushata e verificata 1:1 con il competitor. **Solo dopo conferma di identità visuale** si procede con la traduzione IT come step 2 separato. Mai mischiare i due step.
 - **🔒 Mai toccare template/sezioni esistenti.** Tutto vive in file nuovi con prefisso store-specifico (`<store-slug>-<page-type>-<NN>-<role>.liquid`). Mai sovrascrivere `index.json`, `product.<existing>.json`, sezioni del tema base.
 - **Costruzione SEQUENZIALE in ordine fisso**: **Funnel → PDP → Home → Extras**. Motivo: il funnel ha CTA → PDP, la home ha link → PDP. Senza ordine ti tocca rework.
 - **Brand discovery UNA volta sola** (Fase 4) — gli output sono usati da TUTTE le pagine in Fase 6.
 - **Replica visiva 1:1**: ogni sezione si costruisce **da zero** (no riuso sezioni esistenti del tema). HTML+CSS scritti per matchare lo screenshot/markup competitor.
 - **Tutto editabile dal theme editor — REGOLA CRITICA**: niente hardcoded nel markup. Testi/immagini/link/colori sempre come `settings`/`blocks` nello schema. Per le sezioni PDP è OBBLIGATORIO `"blocks": [{"type": "@app"}]` per supportare Katching Bundles, subscription pickers, app review. Fonte di verità: `references/editability-and-app-blocks.md`.
-- **Localizzazione ENG → IT**: i testi del competitor sono in inglese, vanno tradotti in italiano mantenendo tono di voce. Fonte: `references/localization-it.md`.
 - **Mobile-first**: il traffico arriva da ads (>80% mobile). Ogni sezione deve girare benissimo a 375px.
 - **Un push per volta, sempre selettivo**. Mai `theme push` senza `--only`. Il `--only` include SOLO i file della pagina corrente.
 - **Conferma prima di azioni irreversibili** (creazione file, push live, override homepage).
@@ -221,18 +224,28 @@ Loop sull'array `scope.pages_ordered` calcolato in Fase 3, in ordine fisso (Funn
 
 Per ogni pagina, esegui il sub-workflow 6.x:
 
-### 6.x.1 — Input materiali competitor
+### 6.x.1 — Input materiali competitor (SCREENSHOT OBBLIGATORI)
+
+**Regola d'oro**: senza screenshot leggibili, **non si procede**. WebFetch da solo non basta — molti competitor usano JS rendering, lazy loading, A/B test, paywall che restituiscono HTML scarno o diverso da ciò che l'utente vede. Lavorare solo da WebFetch porta inevitabilmente ad **hallucinare** testi e sezioni che non esistono. Vietato.
 
 Chiedi all'utente:
 
 ```
 === Pagina <N>/<TOT>: <tipo pagina> ===
 
-Per replicarla 1:1 mandami:
-  1. Screenshot DESKTOP dell'intera pagina (full-page, non solo viewport)
-  2. Screenshot MOBILE dell'intera pagina (full-page)
+Per replicarla 1:1 mi servono OBBLIGATORI:
+  1. Screenshot DESKTOP dell'intera pagina (full-page, non solo viewport — usa
+     "Capture full page" del tuo browser o tool come GoFullPage)
+  2. Screenshot MOBILE dell'intera pagina (full-page, viewport 375-414px)
   3. URL competitor (riconfermami quello già salvato in Fase 4 o cambia)
+
+Senza screenshot non posso lavorare in modo affidabile: rischierei di inventare
+testi e sezioni che non esistono.
 ```
+
+⚠️ **Se l'utente prova a procedere senza screenshot**: rifiuta e ripeti la richiesta. Non costruire la pagina basandoti SOLO su WebFetch.
+
+⚠️ **Se gli screenshot sono di scarsa qualità** (sfocati, viewport tagliato, mobile non full-page): chiedi nuovi screenshot prima di procedere. Non interpretare a vista — chiedi.
 
 Salva in:
 - `current_page.screenshots.desktop` (path/ID immagine)
@@ -241,57 +254,22 @@ Salva in:
 
 ### 6.x.2 — Analisi visiva e mappatura sezioni
 
-Usa `WebFetch` sull'URL competitor + analizza gli screenshot ricevuti per ricostruire la **lista ordinata di sezioni** che compongono la pagina.
+Usa `WebFetch` sull'URL competitor + analizza **soprattutto gli screenshot** ricevuti per ricostruire la **lista ordinata di sezioni** che compongono la pagina.
 
-Esempio per advertorial:
-```
-01. announcement-bar
-02. hero
-03. problem-hook
-04. testimonial-quote
-05. solution-intro
-06. benefits-grid
-07. ingredients-detail
-08. social-proof
-09. faq
-10. cta-offer
-11. trust-badges
-12. footer
-```
+**Regola anti-hallucination**: la lista sezioni deve corrispondere a quello che si VEDE nello screenshot. Niente sezioni "tipiche del template" aggiunte senza che siano visibili. Se vedi 7 sezioni → la lista ha 7 sezioni. Niente di più. Niente di meno.
 
-Esempio per PDP:
-```
-01. hero-banner
-02. main             # contiene gallery + product-info + buy-buttons + bullets
-03. ingredients-strip
-04. testimonial-carousel
-05. how-it-works
-06. comparison-table
-07. faq
-08. reviews-wall
-09. closing-cta
-```
+Esempi di sezioni comuni (USA SOLO COME RIFERIMENTO MENTALE per riconoscerle, NON come template fisso):
 
-Esempio per home:
-```
-01. announcement-bar
-02. hero-video
-03. featured-product
-04. usp-strip
-05. press-features
-06. testimonial-grid
-07. cta-bundle
-08. blog-teaser
-09. newsletter-signup
-10. footer
-```
+- announcement-bar, hero, problem-hook, testimonial-quote, solution-intro, benefits-grid, ingredients-detail, social-proof, faq, cta-offer, trust-badges, footer (advertorial)
+- hero-banner, main (gallery+info+buy), ingredients-strip, testimonial-carousel, how-it-works, comparison-table, faq, reviews-wall, closing-cta (PDP)
+- announcement-bar, hero-video, featured-product, usp-strip, press-features, testimonial-grid, cta-bundle, blog-teaser, newsletter-signup, footer (home)
 
 Salva in `current_page.sections` (array ordinato). Per ogni sezione:
 - `nn`: numero (zero-padded, es. "01")
 - `role`: ruolo semantico (es. "hero", "faq", "cta-offer")
-- `notes`: descrizione visiva breve (es. "headline + subheadline + 2 CTA + immagine destra")
+- `notes`: descrizione visiva breve di quello che SI VEDE (es. "headline + subheadline + bottone coral + foto donna sorridente a destra")
 
-Mostra all'utente la lista mappata + `AskUserQuestion`: "Confermi la struttura o vuoi modificarla?"
+Mostra all'utente la lista mappata + `AskUserQuestion`: "Confermi la struttura o vuoi modificarla? (Aggiungi/rimuovi/riordina/rinomina)"
 
 ### 6.x.3 — Creazione template Shopify
 
@@ -342,9 +320,61 @@ npx @shopify/cli@latest theme push \
 
 Salva in `current_page.build_mode` ∈ {`A`, `B`}.
 
-### 6.x.5 — Costruzione effettiva sezioni
+---
+
+### 6.x.5 — STEP 1: Literal clone (lingua originale, anti-hallucination)
+
+**Obiettivo dello Step 1**: replicare la pagina del competitor **esattamente identica**, sia visivamente che testualmente, **mantenendo i testi nella lingua originale del competitor** (di solito EN). Niente traduzione qui. Niente reinterpretazione. Niente "sezioni che ci starebbero bene". Solo quello che si vede negli screenshot.
+
+La traduzione IT è uno STEP 2 separato (Fase 6.x.6) che parte SOLO dopo che hai verificato che la pagina clonata è 1:1 visivamente identica al competitor.
+
+#### 6.x.5.a — Estrazione letterale dei testi (anti-hallucination)
+
+Prima di scrivere una singola riga di liquid, **estrai SISTEMATICAMENTE tutti i testi visibili** dagli screenshot per ogni sezione mappata in 6.x.2.
+
+Per ogni sezione, produci una tabella estrazione:
+
+```
+=== Sezione 02 — hero ===
+
+CAMPO              | TESTO LETTERALE (lingua originale)
+-------------------|-------------------------------------------
+Headline           | "The cream that finally works"
+Subheadline        | "Visible results in 28 days, 100% money-back guarantee"
+CTA primary label  | "Get yours now"
+CTA primary link   | https://competitor.com/products/cream
+Eyebrow text       | "AS SEEN ON"
+Trust badge 1      | "✓ Free shipping"
+Trust badge 2      | "✓ 30-day refund"
+Image description  | "Foto donna 30-40 anni che si applica crema viso, sfondo crema chiaro"
+
+(altri elementi visibili — non lasciare niente fuori)
+```
+
+**Regole per l'estrazione**:
+
+1. **Trascrivere LETTERALMENTE** ogni testo visibile nello screenshot. Nessuna parafrasi. Nessuna correzione di typos del competitor (li lasci come sono — se scrivono "Get youtrs now" con typo, lo trascrivi "Get youtrs now"; lo correggerai forse nello Step 2).
+2. **Lingua originale**: se il competitor è US, i testi sono in inglese. Se è francese, in francese. Mantieni così.
+3. **Non inventare campi**: se una sezione ha 3 bullet points, la tabella ha 3 righe bullet. Non 4, non 5. Niente "potrebbe esserci anche un quarto bullet che ci starebbe".
+4. **Se non riesci a leggere un testo** (sfocato, troppo piccolo, fuori dallo screenshot, dietro a un overlay): NON inventarlo. Marca la riga come `[NON LEGGIBILE — chiedi zoom]` e procedi con la prossima sezione. Alla fine raccogli tutti i `[NON LEGGIBILE]` e chiedi all'utente in un colpo solo: "Mi servono questi zoom su queste aree specifiche."
+5. **Numeri e claim specifici** vanno trascritti esattamente: "47% reduction in 28 days" non diventa "significant reduction in a few weeks".
+6. **Recensioni / testimonial**: trascrivi parola per parola. Nome dell'autore, città, foto: indica solo che esistono ("Foto donna ~50 anni, capelli corti, sorridente"). NON copiare nomi e città reali del competitor — quei testimonial sono di **clienti del competitor**, non nostri (vedi `references/localization-it.md` per regole).
+7. **Footer e disclaimer legali**: trascrivi anche questi (servirà per la struttura, ma in Step 2 li adatteremo ai nostri dati aziendali).
+
+**Mostra all'utente la tabella di TUTTE le sezioni** (in formato compatto se sono molte) e chiedi con `AskUserQuestion`:
+- **Sì, l'estrazione è corretta** → procedi a 6.x.5.b
+- **Correggo alcune righe** → l'utente indica le correzioni, applica e ripresenta
+- **Mi mancano zoom su queste aree** → l'utente manda nuovi screenshot zoomati, riprocessa
+
+⚠️ **Stop critico**: non procedere oltre se ci sono righe `[NON LEGGIBILE]` non risolte. La hallucination su testi non leggibili è esattamente quello che vogliamo evitare. Se l'utente dice "vai avanti con quello che hai" → metti placeholder esplicito tipo `[testo originale non leggibile — verificare]` nel `default` dello schema, NON inventare.
+
+Salva in `current_page.literal_extraction[<NN>]` la tabella per ogni sezione.
+
+#### 6.x.5.b — Build sezioni con testi letterali
 
 Per ogni sezione in `current_page.sections`, scrivi `sections/<current_page.section_prefix>-<NN>-<role>.liquid` rispettando le regole specificate sotto.
+
+**Inserisci nei `default` dello schema ESATTAMENTE i testi estratti in 6.x.5.a**, lingua originale. Non tradurre. Non parafrasare. Non aggiungere sezioni o campi che non esistono nell'estrazione.
 
 **Regole per ogni sezione costruita** (rispettare TUTTE):
 
@@ -404,16 +434,9 @@ Vedi `references/editability-and-app-blocks.md` per dettaglio. Riassunto operati
   ```
   Questo permette al theme editor di **inserire blocchi di app** (es. Katching Bundles, subscription pickers, recensioni Judge.me/Loox) negli slot voluti senza modificare il liquid. **Senza `@app` non funziona Katching Bundles**.
 
-- **Default sensati**: ogni `setting` e `block` ha `default` popolato con il testo IT tradotto / colore brand / immagine placeholder, così la pagina live mostra subito contenuto reale dopo il push, senza passare dall'editor.
+- **Default sensati**: ogni `setting` e `block` ha `default` popolato con i **testi letterali estratti in 6.x.5.a** (lingua originale del competitor) / colori brand / immagini placeholder. Così la pagina live mostra subito esattamente quello che vede il competitor, senza passare dall'editor.
 
-#### C) Localizzazione ENG → IT
-
-Ogni testo del competitor (in inglese) va tradotto in italiano nei `default` dello schema. Vedi `references/localization-it.md` per:
-- Mantenimento del tono di voce competitor
-- Gestione dei claim "before/after" / "results in N days" rispettando best practice IT (consigliata moderazione su claim medici/cosmetici)
-- Adattamento di unità di misura, valute, formati indirizzo se compaiono
-
-#### D) Schema completo di esempio (template per ogni sezione)
+#### C) Schema completo di esempio (template per ogni sezione)
 
 ```liquid
 {% schema %}
@@ -448,7 +471,7 @@ Ogni testo del competitor (in inglese) va tradotto in italiano nei `default` del
 {% endschema %}
 ```
 
-#### E) Aggiornamento template JSON
+#### D) Aggiornamento template JSON
 
 Per ogni sezione creata, aggiungi entry al template `templates/<file>.json`:
 
@@ -461,9 +484,9 @@ Per ogni sezione creata, aggiungi entry al template `templates/<file>.json`:
 
 E aggiungi la chiave all'array `order` nella posizione corretta.
 
-### 6.x.6 — Push delle sezioni
+#### 6.x.5.c — Push literal
 
-#### Modalità A (one-shot)
+##### Modalità A (one-shot)
 
 Scrivi tutti i file `.liquid` in parallelo (multiple `Write` in un singolo messaggio). Aggiorna il template JSON con tutte le sezioni in `sections{}` + `order[]`. Push selettivo unico:
 
@@ -478,11 +501,117 @@ npx @shopify/cli@latest theme push \
   # ... tutte le sezioni
 ```
 
-#### Modalità B (sezione per sezione)
+##### Modalità B (sezione per sezione)
 
 Loop: per ogni sezione, write file → aggiorna template JSON → push selettivo (solo questa sezione + template) → utente verifica live → conferma → prossima sezione.
 
 A ogni conferma di sezione, prima di passare alla successiva, `AskUserQuestion`: "Confermata. Continua sezione-per-sezione, o passo al one-shot per le restanti N?"
+
+#### 6.x.5.d — Verifica visuale 1:1 col competitor (literal phase)
+
+Chiedi all'utente di aprire la pagina live (in modalità "draft / unpublished theme preview" se possibile) e fare confronto **side-by-side con la pagina competitor**:
+
+```
+Apri side-by-side:
+  - Sinistra:  https://<competitor.url>
+  - Destra:    https://<store.shopify_domain>/<live-url>?preview_theme_id=<store.theme_id>
+
+Verifica per ogni sezione:
+  [ ] Stesso ordine sezioni (top-to-bottom)
+  [ ] Stessi testi (in lingua originale, parola per parola)
+  [ ] Stessi colori e tipografia
+  [ ] Stesso layout mobile (375px) e desktop (1440px)
+  [ ] Stessi CTA labels e link
+  [ ] Niente sezioni in più o in meno
+```
+
+`AskUserQuestion`:
+- **Pagina identica al competitor** → procedi a 6.x.6 (Step 2 — Localizzazione IT)
+- **Ho trovato discrepanze** → l'utente le elenca, applichi fix puntuali sezione-per-sezione, ripushi, ripeti la verifica
+- **Voglio rivedere l'estrazione** → torna a 6.x.5.a per la sezione interessata
+
+⚠️ **Non procedere alla localizzazione IT finché la pagina literal non è verificata identica al competitor.** Se traduci in IT prima della verifica, eventuali discrepanze testuali si moltiplicano per due (lingua originale + traduzione → entrambe sbagliate).
+
+---
+
+### 6.x.6 — STEP 2: Localizzazione IT
+
+**Solo dopo che la pagina literal è confermata 1:1 con il competitor in 6.x.5.d.**
+
+**Obiettivo dello Step 2**: tradurre i testi delle sezioni dall'originale (EN/altro) a italiano, mantenendo:
+- **Struttura identica**: stesse sezioni, stesso ordine, stessi `settings`/`blocks`
+- **Layout identico**: nessuna modifica al markup HTML/CSS
+- **Tono di voce**: come definito in `brand.tone` di Fase 4
+
+Niente nuovi contenuti. Niente aggiunte. Solo traduzione dei testi che sono GIÀ nei `default` dello schema.
+
+#### 6.x.6.a — Traduzione default schema
+
+Per ogni sezione, leggi il file `.liquid` esistente, identifica nel `{% schema %}` tutti i `default` testuali (settings tipo `text`/`textarea`/`richtext` + `block.settings.<id>` con `default`), e proponi la traduzione IT.
+
+**Regole**:
+- Modifica SOLO i `default` dei `settings` e `blocks` del `{% schema %}`. NON toccare il markup, le classi CSS, gli `<script>`, `<style>`, attributi `data-*`.
+- Mantieni stessa lunghezza/peso del testo originale (importante per layout — un titolo molto più lungo può rompere il design).
+- Applica le regole di `references/localization-it.md`:
+  - Mantieni tono di voce competitor (`brand.tone` di Fase 4)
+  - Modera claim cosmetici/integratori secondo normativa IT
+  - Adatta valute/unità di misura/formati indirizzo se compaiono
+  - I testimonial: NON tradurre, **rimuovi** (sono di clienti del competitor, non nostri). Sostituisci con placeholder o con testimonial nostri se l'utente li ha
+  - Numeri specifici (es. "47% reduction in 28 days"): conferma con utente che li abbiamo davvero, altrimenti modera o rimuovi
+
+**Mostra all'utente diff sezione-per-sezione** in formato compatto:
+
+```
+=== Sezione 02 — hero ===
+heading
+  EN: "The cream that finally works"
+  IT: "La crema che finalmente funziona"
+
+subheading
+  EN: "Visible results in 28 days, 100% money-back guarantee"
+  IT: "Risultati visibili in 28 giorni, garanzia soddisfatto o rimborsato"
+
+cta_label
+  EN: "Get yours now"
+  IT: "Ordina la tua"
+```
+
+`AskUserQuestion` di switch:
+- **Approvo tutto, applica e pusha** → batch translation + push selettivo
+- **Sezione per sezione, voglio rivedere** → loop con conferma per ogni sezione
+- **Cambio tono di voce** → l'utente specifica più diretto/pacato/scientifico, rigenera
+
+#### 6.x.6.b — Push translation
+
+Modalità batch:
+```bash
+cd "<store.workdir_path>"
+set -a; source "<store.env_path>"; set +a
+npx @shopify/cli@latest theme push \
+  --theme <store.theme_id> --nodelete --allow-live \
+  --only "sections/<prefix>-01-<role>.liquid" \
+  --only "sections/<prefix>-02-<role>.liquid" \
+  # ... tutte le sezioni tradotte
+```
+
+Niente push del template `.json` (lo schema dei file è cambiato dentro i `.liquid`, ma la struttura del template JSON resta identica).
+
+#### 6.x.6.c — Verifica final IT
+
+Chiedi all'utente di aprire la pagina live e fare uno smoke check:
+
+```
+Verifica IT (URL: <live-url>):
+  - [ ] Tutti i testi sono in italiano (no residui inglesi tranne brand name se voluto)
+  - [ ] Layout intatto (testi più lunghi/corti non rompono il design)
+  - [ ] Mobile 375px e desktop 1440px coerenti con la versione literal
+  - [ ] Tono di voce coerente sezione per sezione
+  - [ ] Nessun claim cosmetico/integratore problematico per normativa IT
+```
+
+`AskUserQuestion`:
+- **Pagina IT OK** → procedi a 6.x.7 (caso speciale per tipo pagina)
+- **Aggiusto questi testi** → fix puntuali e ripush
 
 ### 6.x.7 — Caso speciale per ogni tipo di pagina
 
@@ -551,26 +680,9 @@ OPZIONE B — sostituisci direttamente l'index.json di default:
 
 Stessa procedura del Funnel (Page in Admin → assegna template). Vedi `references/page-types-extras.md` per template-specifici (es. `traccia-il-tuo-ordine` ha campo input order tracking).
 
-### 6.x.8 — Verifica live
+### 6.x.8 — Loop alla pagina successiva
 
-Chiedi all'utente di aprire la pagina live e fare smoke check:
-
-```
-Verifica live (URL: <live-url>):
-  - [ ] Mobile viewport 375px: tutte le sezioni leggibili, bottoni cliccabili
-  - [ ] Desktop viewport 1440px: layout coerente, max-width container ok
-  - [ ] CTA presenti puntano all'URL giusto (PDP per funnel/home, varianti per PDP)
-  - [ ] Console browser: no errori Liquid, no 404 su immagini placeholder
-  - [ ] Visivamente: paragonabile allo screenshot competitor che mi hai mandato
-```
-
-`AskUserQuestion`: "Pagina OK? → procedi alla prossima | Ho problemi → switcho a modalità review sezione-per-sezione."
-
-Se l'utente segnala problemi, entriamo in modalità review della pagina corrente: leggi sezioni problematiche, applica fix puntuali, push, riconferma.
-
-### 6.x.9 — Loop alla pagina successiva
-
-Quando l'utente conferma OK su `current_page`: marca `current_page.status = "done"`, passa alla prossima in `scope.pages_ordered`.
+Quando l'utente conferma OK sia in 6.x.5.d (literal) sia in 6.x.6.c (IT), e ha completato il caso speciale di 6.x.7 (creazione product/page/assignment): marca `current_page.status = "done"`, passa alla prossima in `scope.pages_ordered`.
 
 Quando tutte le pagine in `scope.pages_ordered` sono done → vai a Fase 7.
 
@@ -588,7 +700,7 @@ Opzioni (vedi `references/page-types-extras.md` per template specifici):
 - **Blog landing** — lista articoli
 - **Collection page** — griglia prodotti
 
-Per ogni pagina extra selezionata, ripete il sub-workflow 6.x.1 → 6.x.8 (con peso ridotto sull'analisi visiva — le extras sono più standardizzate).
+Per ogni pagina extra selezionata, ripete il sub-workflow 6.x.1 → 6.x.8 (con peso ridotto sull'analisi visiva — le extras sono più standardizzate). Vale sempre la regola: prima literal clone (lingua originale), poi traduzione IT.
 
 Quando l'utente non vuole aggiungere altro → vai a Fase 8.
 

@@ -1,14 +1,23 @@
-# Localizzazione ENG → IT
+# Localizzazione ENG → IT (Step 2 — solo dopo literal clone verificato)
 
-Riferimento per Fase 6.x.5 di `/clone-competitor-store`. Spiega come tradurre i testi del competitor (di solito inglese US) in italiano, mantenendo il **tono di voce** ma adattando ai vincoli normativi e culturali del mercato IT.
+Riferimento per Fase **6.x.6** di `/clone-competitor-store` — STEP 2 della costruzione di ogni pagina. Si applica **solo dopo** che la pagina è stata costruita in lingua originale (Fase 6.x.5) ed è stata verificata 1:1 visivamente identica al competitor (Fase 6.x.5.d).
 
-## Obiettivo
+## ⚠️ Quando NON usare questo riferimento
 
-Output: testi italiani che:
-1. Mantengono il **tono di voce** del competitor (urgent / scientific / casual / luxury)
-2. Sono **fluenti**, non sembrano traduzioni automatiche
-3. Rispettano **best practice IT** per claim cosmetici/integratori (più moderati di quelli US)
-4. Adattano **unità di misura, valute, formati** ai canoni italiani
+- **Non durante lo Step 1** (literal clone): in fase 6.x.5 la skill costruisce le sezioni con i testi LETTERALI del competitor, in lingua originale. La traduzione IT non parte ancora.
+- **Non per ottimizzare/riscrivere copy**: questo step è SOLO traduzione. Se l'utente vuole cambiare wording, scegliere claim diversi, riformulare: è un'iterazione separata DOPO che il clone IT è completo.
+
+Se ti trovi a tradurre testi che NON sono ancora nei `default` dello schema della sezione → STOP, sei nel posto sbagliato. Torna a 6.x.5 e completa prima il literal clone.
+
+## Obiettivo (solo Step 2)
+
+Trasformare i testi esistenti nei `default` dello schema (lingua originale) in italiano fluente, mantenendo:
+1. Il **tono di voce** del competitor (urgent / scientific / casual / luxury)
+2. La **stessa lunghezza** (per non rompere il layout)
+3. Il **rispetto delle best practice IT** per claim cosmetici/integratori (più moderati di quelli US)
+4. Le **unità di misura, valute, formati** adattati ai canoni italiani
+
+Output: testi italiani che siano fluenti, non sembrino traduzioni automatiche, e che vivano dentro i `default` dello schema delle sezioni già esistenti. **Niente modifiche al markup, alle classi CSS, agli script, alla struttura JSON del template.**
 
 ## Mantenimento tono di voce
 
@@ -182,16 +191,22 @@ Da inserire come default nei `setting` schema dove serve:
 
 ⚠️ I numeri devono essere **veri o plausibili**. Se non li hai, non barare. Sostituisci con testimonianza qualitativa o rimuovi.
 
-## Workflow operativo per la skill
+## Workflow operativo (Step 2 — Fase 6.x.6.a)
 
-### Per ogni testo del competitor da tradurre
+### Per ogni sezione già pushata in lingua originale
 
-1. **Identifica il tono dominante** (da `brand.tone` di Fase 4)
-2. **Traduci letteralmente** come baseline mentale (per non perdere niente)
-3. **Riformula in IT idiomatico** rispettando il tono
-4. **Verifica claim**: se è un claim cosmetico/integratore, applica le regole sopra
-5. **Adatta numeri/unità/valute**
-6. **Inserisci come `default`** del setting nello schema
+1. **Apri il file** `sections/<prefix>-<NN>-<role>.liquid` con `Read` (la versione literal-only di Step 1)
+2. **Identifica nello `{% schema %}`** tutti i `default` testuali dei `settings` (text/textarea/richtext) e dei `blocks.<*>.settings` con `default`
+3. **Per ogni `default`**:
+   - **Identifica il tono dominante** (da `brand.tone` di Fase 4)
+   - **Traduci preservando la lunghezza** (un titolo molto più lungo rompe il design — se il testo IT diventa troppo lungo, riformula più conciso)
+   - **Riformula in IT idiomatico** rispettando il tono
+   - **Verifica claim**: se è un claim cosmetico/integratore, applica le regole sotto
+   - **Adatta numeri/unità/valute** se compaiono
+4. **NON toccare** markup HTML, CSS, classi, script, attributi `data-*`, struttura del template JSON. Solo i `default` dello schema.
+5. **Mostra diff EN → IT** all'utente sezione-per-sezione
+6. **Applica con `Edit`** per pochi settings, oppure `Bash python3` heredoc per molti settings/blocks
+7. **Push selettivo** delle sezioni modificate
 
 ### Quando un claim è insostenibile
 
