@@ -162,3 +162,20 @@ Se l'utente in Fase 4.3 dice che i colori estratti sono sbagliati 2 volte di seg
 - L'estrazione palette è **euristica**, non deterministica: due esecuzioni dello stesso URL possono dare top-7 leggermente diversi se il CSS è dinamico.
 - Una pagina competitor sola non basta: usa più URL (funnel + PDP + home se disponibili) e fai un MERGE delle palette estratte. Colori che compaiono in 2+ pagine = high confidence.
 - Tono di voce: lascia spazio per override utente. Spesso il tono di voce del competitor è da AGGIUSTARE per il mercato IT (più pacato, meno "clickbait" che funziona in US).
+
+## ⚠️ Caveat critico — palette globale ≠ palette per-pagina
+
+La palette estratta in questa fase è la **palette globale del brand competitor** (header, footer, identità di marca). **Non è automaticamente la palette di ogni singola pagina**.
+
+In particolare:
+- Le **advertorial / landing funnel** usano frequentemente palette pagina-specifica diversa per ottimizzazione conversione: CTA verde acceso (`#00C853`) su un sito globalmente pastello, sticky bar nera con CTA giallo, accent ciano per "freshness", ecc.
+- Le **PDP** spesso ereditano palette globale + 1-2 colori specifici per badge/offer
+- Le **home** di solito usano la palette globale
+- Le **pagine legali/extra** usano sempre palette globale
+
+**Conseguenza**: prima di costruire ogni pagina, la skill in **Fase 6.x.5.0** deve estrarre la palette **pagina-specifica** dall'HTML/CSS di QUELLA pagina e usarla come override della globale. Cercare:
+- CSS custom properties `:root { --xxx: #yyy }` (sono la "fonte ufficiale")
+- Inline styles su `<section>` di alto livello
+- Color values frequenti nel CSS specifico della pagina
+
+Esempio reale: la skill aveva applicato `#FF6B35` (orange della home) a un advertorial che in realtà usava `--adv-cta-bg: #00C853` (verde) — risultato visivamente sbagliato anche con testi perfetti. Fix: estrazione palette page-specific in 6.x.5.0.

@@ -19,7 +19,7 @@ Segui le 8 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` come ga
 - **🧹 Collision detection PRIMA della creazione**: ogni volta che stai per creare un template/sezioni con un certo prefisso store, verifica con `ls` che NON esistano già file con quei nomi nel workdir. Se ci sono → STOP e chiedi all'utente: cleanup totale, suffix versione `-v2`, o stop. **Mai sovrascrivere "alla cieca"** — si finisce con sezioni orfane numerate due volte (es. `-03-editorial.liquid` + `-03-problem.liquid`) che creano il caos.
 - **🔒 Mai toccare template/sezioni esistenti.** Tutto vive in file nuovi con prefisso store-specifico (`<store-slug>-<page-type>-<NN>-<role>.liquid`). Mai sovrascrivere `index.json`, `product.<existing>.json`, sezioni del tema base.
 - **Costruzione SEQUENZIALE in ordine fisso**: **Funnel → PDP → Home → Extras**. Motivo: il funnel ha CTA → PDP, la home ha link → PDP. Senza ordine ti tocca rework.
-- **Brand discovery UNA volta sola** (Fase 4) — gli output sono usati da TUTTE le pagine in Fase 6.
+- **Brand discovery UNA volta sola** (Fase 4) — gli output sono **base di partenza** per tutte le pagine. Però ogni pagina specifica può avere palette propria diversa dalla globale (è frequente negli advertorial competitor): in 6.x.5.0 la skill estrae la palette pagina-specifica dall'HTML/CSS della pagina e la usa come override per QUELLA pagina.
 - **Replica visiva 1:1**: ogni sezione si costruisce **da zero** (no riuso sezioni esistenti del tema). HTML+CSS scritti per matchare lo screenshot/markup competitor.
 - **🎨 CSS scraping opzionale per fedeltà ~90%**: se l'utente lo attiva in Fase 6.x.4.bis, la skill scarica i file CSS pubblici del competitor via `curl` (sono asset pubblici, mandati al browser di chiunque visiti il sito) e ne riusa le regole nelle sezioni clonate. Questo porta la fedeltà visiva da ~70% (ricostruzione a vista) a ~90% (CSS sorgente riapplicato). Senza CSS scraping, la skill fa il suo meglio dagli screenshot ma valori esatti di padding/margin/font-weight saranno approssimazioni.
 - **Tutto editabile dal theme editor — REGOLA CRITICA**: niente hardcoded nel markup. Testi/immagini/link/colori sempre come `settings`/`blocks` nello schema. Per le sezioni PDP è OBBLIGATORIO `"blocks": [{"type": "@app"}]` per supportare Katching Bundles, subscription pickers, app review. Fonte di verità: `references/editability-and-app-blocks.md`.
@@ -454,6 +454,64 @@ Il flusso di build di 6.x.5.b userà queste informazioni per riapplicare le rego
 **Obiettivo dello Step 1**: replicare la pagina del competitor **esattamente identica**, sia visivamente che testualmente, **mantenendo i testi nella lingua originale del competitor** (di solito EN). Niente traduzione qui. Niente reinterpretazione. Niente "sezioni che ci starebbero bene". Solo quello che l'utente fornisce.
 
 La traduzione IT è uno STEP 2 separato (Fase 6.x.6) che parte SOLO dopo che hai verificato che la pagina clonata è 1:1 visivamente identica al competitor.
+
+#### 6.x.5.0 — Estrazione palette **pagina-specifica** (sostituisce/override la palette globale di Fase 4)
+
+⚠️ **Critico**: la palette estratta in Fase 4 (brand discovery globale) è una **base di partenza** che vale per la home/identità globale del competitor. **Non è la palette di questa pagina specifica**. È molto comune nei competitor advertorial avere palette pagina-specifica diversa dal resto dello store (es. CTA verde acceso su un sito globalmente pastello, sticky bar nera con CTA giallo, accent ciano per emotional design). Costruire sezioni usando la palette globale produce risultati **visivamente sbagliati** anche se i testi sono perfetti.
+
+Prima di costruire qualsiasi sezione di questa pagina, estrai i colori esatti che il competitor usa SU QUESTA PAGINA SPECIFICA.
+
+**Procedura** (da fare **sempre**, anche se l'utente non ha attivato CSS scraping in 6.x.4.bis):
+
+##### 1. Se hai HTML salvato (Formato A di 6.x.5.a, già richiesto)
+
+Leggi l'HTML salvato della pagina e cerca:
+
+- **CSS custom properties** definite in `:root` (vincolante: queste SONO la palette ufficiale del competitor):
+  ```bash
+  grep -E "^\s*--[a-zA-Z0-9_-]+:\s*#[0-9a-fA-F]" "<html-file>"
+  # Oppure in python3:
+  python3 <<'PY'
+  import re
+  with open("<html-file>") as f:
+      content = f.read()
+  # Cerca CSS variables in <style> e in :root selectors
+  vars = re.findall(r'(--[a-zA-Z0-9_-]+):\s*(#[0-9a-fA-F]{3,8}|rgb[a]?\([^)]+\))', content)
+  for name, value in vars:
+      print(f"{name}: {value}")
+  PY
+  ```
+- **Inline style su `<section>`/`<div>` di alto livello**: `<section style="background: #00C853; color: #fff;">` — pesa molto, è visibilmente applicato.
+- **Hex/rgb più frequenti** nel CSS specifico della pagina (esclusi grayscale puri come `#000`/`#fff`/`#ccc`).
+
+##### 2. Se CSS scraping è attivo (6.x.4.bis)
+
+Stessa estrazione ma sui file CSS aggregati `/tmp/cb-css-<slug>/aggregated-<NN>.css`. Le `:root { --xxx }` definite lì sono ancora più affidabili (vivono sul tema, non solo nella pagina).
+
+##### 3. Mostra la differenza all'utente
+
+Presenta una tabella con tre colonne:
+
+```
+=== Palette pagina <NN> vs palette globale Fase 4 ===
+
+VARIABILE          | PAGINA (competitor reale) | GLOBALE Fase 4 | NOTA
+-------------------+---------------------------+----------------+----------
+--adv-cta-bg       | #00C853 (verde acceso)    | #FF6B35 (orange) | OVERRIDE → uso il verde pagina
+--adv-accent       | #34BBE5 (ciano)           | #FF6B35         | OVERRIDE → ciano
+--adv-sticky-bg    | #111111 (nero)            | (n/a)           | NUOVO → uso nero
+--adv-text         | #333333                   | #1A1A1A         | OVERRIDE → grigio competitor
+--adv-card-bg      | #F7F9FA                   | #FAF6F2         | quasi uguale, OK
+```
+
+`AskUserQuestion`:
+- **Sì, usa la palette di pagina (Recommended)** → `current_page.palette` = palette estratta. Override completo della palette globale per QUESTA pagina.
+- **No, mantieni palette globale Fase 4** → `current_page.palette` = `brand.palette` (rischio: visual diverso dal competitor)
+- **Mix custom**: l'utente sceglie variabile per variabile
+
+Salva in `current_page.palette` la palette finale da usare in 6.x.5.b. **Tutti i `default` dei `setting type:"color"` delle sezioni di questa pagina useranno questa palette**, NON la `brand.palette` globale.
+
+⚠️ La `brand.palette` globale resta comunque utile per: header/footer (se condivisi tra le pagine), home (se non ha override propri), pagine extra. Solo questa pagina specifica usa il proprio override.
 
 #### 6.x.5.a — Raccolta testi letterali dall'utente (NO scraping da parte di Claude)
 

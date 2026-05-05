@@ -181,6 +181,96 @@ Dopo aver applicato il CSS del competitor, **sovrascrivi** i valori che vogliamo
 
 Questo perché lo scopo della clone è "stesso design, brand nostro". Il rosso del CTA del competitor non deve restare rosso se il nostro brand è coral.
 
+---
+
+## Estrazione delle CSS custom properties (per Fase 6.x.5.0 — palette pagina-specifica)
+
+I temi moderni (Dawn, Horizon, Sense, e molti custom) espongono i colori del competitor come **CSS custom properties** (variabili CSS) in `:root`. Sono la fonte di verità più affidabile perché il sito stesso le usa per renderizzare tutto: bottoni, sezioni, testi.
+
+Pattern tipici da cercare:
+```css
+:root {
+  --color-primary: #E36B6E;
+  --adv-cta-bg: #00C853;
+  --adv-text: #333333;
+  --color-background-1: #FAF6F2;
+  /* ... */
+}
+```
+
+### Procedura
+
+```bash
+# Da HTML salvato O CSS aggregato
+python3 <<'PY'
+import re
+
+# Cambia il path con quello giusto:
+sources = [
+    "/path/to/saved.html",                       # HTML salvato (ha <style> inline + spesso <link>)
+    "/tmp/cb-css-<slug>/aggregated-<NN>.css",    # CSS aggregato (se 6.x.4.bis attivato)
+]
+
+vars_found = {}
+for path in sources:
+    try:
+        with open(path) as f:
+            content = f.read()
+    except FileNotFoundError:
+        continue
+    # Pattern: --nome: valore;
+    matches = re.findall(
+        r'(--[a-zA-Z0-9_-]+)\s*:\s*(#[0-9a-fA-F]{3,8}|rgb[a]?\([^)]+\)|hsl[a]?\([^)]+\))\s*[;}]',
+        content
+    )
+    for name, value in matches:
+        vars_found[name] = value
+
+# Filtra solo quelle relative ai colori (escludi --spacing, --font-size, ecc.)
+color_vars = {k: v for k, v in vars_found.items()
+              if any(t in k.lower() for t in ['color', 'bg', 'background', 'cta', 'text', 'accent', 'primary', 'secondary', 'heading', 'border', 'card', 'sticky', 'highlight', 'success', 'error'])}
+
+print(f"Trovate {len(color_vars)} CSS custom properties di colore:")
+for name, value in sorted(color_vars.items()):
+    print(f"  {name}: {value}")
+PY
+```
+
+### Categorizzazione
+
+Mappa le variabili trovate sui ruoli del nostro `current_page.palette`:
+
+| Cerca pattern simili a... | Campo nostro |
+|---------------------------|--------------|
+| `--cta-bg`, `--button-primary`, `--btn-primary` | `palette.cta_bg` |
+| `--cta-text`, `--button-text` | `palette.cta_text` |
+| `--text`, `--body-text`, `--color-text` | `palette.body` |
+| `--heading`, `--title`, `--color-heading` | `palette.heading` |
+| `--background`, `--bg`, `--color-bg` | `palette.background` |
+| `--accent`, `--highlight`, `--brand-accent` | `palette.accent` |
+| `--primary`, `--brand-primary` | `palette.primary` |
+
+Se la variabile ha prefisso pagina-specifico (`--adv-*`, `--funnel-*`, `--lp-*`), è ancora più chiaro che è palette per quella tipologia di pagina.
+
+### Validazione
+
+Mostra le variabili trovate all'utente prima di applicarle, tipo:
+
+```
+Ho trovato queste CSS root variables sull'HTML/CSS della pagina <NN>:
+
+  --adv-cta-bg:    #00C853  (verde)        → useremo questo per i bottoni CTA
+  --adv-accent:    #34BBE5  (ciano)        → accent
+  --adv-sticky-bg: #111111  (nero)         → sticky bar
+  --adv-text:      #333333  (grigio scuro) → testo body
+  --adv-heading:   #111111  (quasi nero)   → heading
+  --adv-card-bg:   #F7F9FA  (off-white)    → card backgrounds
+
+Confermi questa palette per la pagina <NN>? (override della palette globale)
+```
+
+`AskUserQuestion` di conferma. Salva in `current_page.palette` (non in `brand.palette`).
+
 ## Quando NON usare CSS scraping
 
 - Competitor con framework JS heavy (React + CSS-in-JS) → `Opzione 3` della Fase 6.x.4.bis (fallback a vista)
