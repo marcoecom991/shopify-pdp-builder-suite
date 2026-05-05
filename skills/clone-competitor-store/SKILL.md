@@ -15,6 +15,7 @@ Segui le 8 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` come ga
 - **📸 Screenshot OBBLIGATORI**: senza screenshot full-page (mobile + desktop) di una pagina, non si procede a costruirla. WebFetch da solo non basta — porta a hallucinations. Niente fallback "lavoro da quello che ho".
 - **📋 Estrazione letterale prima della costruzione**: prima di scrivere qualsiasi liquid, estrai sistematicamente tutti i testi visibili dagli screenshot in tabelle e validali con l'utente. Solo dopo OK si costruisce.
 - **🔄 Due step di costruzione (literal → IT)**: ogni pagina viene costruita **prima in lingua originale** (esattamente come il competitor), pushata e verificata 1:1 con il competitor. **Solo dopo conferma di identità visuale** si procede con la traduzione IT come step 2 separato. Mai mischiare i due step.
+- **🧹 Collision detection PRIMA della creazione**: ogni volta che stai per creare un template/sezioni con un certo prefisso store, verifica con `ls` che NON esistano già file con quei nomi nel workdir. Se ci sono → STOP e chiedi all'utente: cleanup totale, suffix versione `-v2`, o stop. **Mai sovrascrivere "alla cieca"** — si finisce con sezioni orfane numerate due volte (es. `-03-editorial.liquid` + `-03-problem.liquid`) che creano il caos.
 - **🔒 Mai toccare template/sezioni esistenti.** Tutto vive in file nuovi con prefisso store-specifico (`<store-slug>-<page-type>-<NN>-<role>.liquid`). Mai sovrascrivere `index.json`, `product.<existing>.json`, sezioni del tema base.
 - **Costruzione SEQUENZIALE in ordine fisso**: **Funnel → PDP → Home → Extras**. Motivo: il funnel ha CTA → PDP, la home ha link → PDP. Senza ordine ti tocca rework.
 - **Brand discovery UNA volta sola** (Fase 4) — gli output sono usati da TUTTE le pagine in Fase 6.
@@ -282,7 +283,53 @@ Genera nome template (kebab-case):
 Genera prefisso sezioni (vedi `../create-new-pdp/references/section-naming.md`):
 - `current_page.section_prefix = <store.slug>-<page-type-short>` (es. `glowria-adv`, `glowria-pdp`, `glowria-home`)
 
-Crea il template Shopify scheletro:
+#### 6.x.3.a — Collision detection (OBBLIGATORIO, prima di creare qualsiasi file)
+
+⚠️ **STOP critico**: prima di scrivere qualsiasi file, verifica se ESISTONO GIÀ template/sezioni con i nomi che stai per usare. Senza questo check rischi di sovrascrivere lavoro precedente, lasciare sezioni orfane (file in locale ma non più referenziate dal template), o accumulare detriti che confondono il theme editor.
+
+**Esegui detection con `Bash`** sul workdir locale:
+
+```bash
+cd "<store.workdir_path>"
+
+# Template di destinazione
+ls "templates/<template-target>.json" 2>/dev/null
+
+# Sezioni con il prefisso che andrai a creare
+ls sections/<current_page.section_prefix>-*.liquid 2>/dev/null
+```
+
+Se almeno UNO dei due comandi trova qualcosa → c'è collisione. **Non procedere** alla creazione. `AskUserQuestion`:
+
+- **(a) Cleanup totale + ripartiamo da zero (Recommended)**
+  - Cancello tutti i file vecchi (template + sezioni con prefisso) sia in locale che dal tema live
+  - Procedo a 6.x.3.b con workspace pulito
+  - Comando di cancellazione (mostra all'utente cosa farai prima di lanciarlo):
+    ```bash
+    cd "<store.workdir_path>"
+    rm -f sections/<prefix>-*.liquid templates/<template-target>.json
+    env $(grep -v '^#' "<store.env_path>" | xargs) \
+      npx -y @shopify/cli@latest theme push \
+      --theme <store.theme_id> --allow-live \
+      --only "sections/<prefix>-*.liquid" \
+      --only "templates/<template-target>.json"
+    ```
+    (NB: senza `--nodelete` → il push sync solo i file matching i pattern `--only` e cancella dal remoto quelli orfani che corrispondono al pattern.)
+
+- **(b) Suffix versione `-v2`** → riusa lo stesso approccio dei nomi ma con suffix:
+  - `<store-slug>-pdp-v2`, prefisso sezioni `<store-slug>-pdp-v2-` (incrementa il numero se v2 già esiste)
+  - Procedi a 6.x.3.b coi nomi nuovi
+  - I file vecchi restano intatti (l'utente può cancellarli a mano dopo se vuole)
+
+- **(c) Stop e usa il vecchio** → la skill termina, l'utente lavora sul template esistente con le altre skill (`/create-new-pdp` per editing, theme editor per modifiche dirette)
+
+⚠️ Se l'utente dice "vai avanti, sovrascrivi" senza scegliere una delle opzioni: rifiuta. Spiega che sovrascrivere il template senza cancellare le sezioni vecchie crea il problema dei file orfani. Insisti su una delle 3 opzioni.
+
+⚠️ **Se l'utente sceglie (a) Cleanup**: PRIMA cancella, POI verifica con un nuovo `ls` che il workspace sia effettivamente pulito, POI procedi. Non saltare la verifica — anche un singolo file orfano residuo crea il bug del run-precedente che rispunta.
+
+#### 6.x.3.b — Creazione template scheletro
+
+Crea il template Shopify scheletro (solo dopo che la collision detection è passata):
 
 | Tipo pagina | File template | Layout | Note |
 |-------------|---------------|--------|------|
