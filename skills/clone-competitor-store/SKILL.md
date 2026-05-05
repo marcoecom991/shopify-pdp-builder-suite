@@ -21,6 +21,7 @@ Segui le 8 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` come ga
 - **Costruzione SEQUENZIALE in ordine fisso**: **Funnel → PDP → Home → Extras**. Motivo: il funnel ha CTA → PDP, la home ha link → PDP. Senza ordine ti tocca rework.
 - **Brand discovery UNA volta sola** (Fase 4) — gli output sono usati da TUTTE le pagine in Fase 6.
 - **Replica visiva 1:1**: ogni sezione si costruisce **da zero** (no riuso sezioni esistenti del tema). HTML+CSS scritti per matchare lo screenshot/markup competitor.
+- **🎨 CSS scraping opzionale per fedeltà ~90%**: se l'utente lo attiva in Fase 6.x.4.bis, la skill scarica i file CSS pubblici del competitor via `curl` (sono asset pubblici, mandati al browser di chiunque visiti il sito) e ne riusa le regole nelle sezioni clonate. Questo porta la fedeltà visiva da ~70% (ricostruzione a vista) a ~90% (CSS sorgente riapplicato). Senza CSS scraping, la skill fa il suo meglio dagli screenshot ma valori esatti di padding/margin/font-weight saranno approssimazioni.
 - **Tutto editabile dal theme editor — REGOLA CRITICA**: niente hardcoded nel markup. Testi/immagini/link/colori sempre come `settings`/`blocks` nello schema. Per le sezioni PDP è OBBLIGATORIO `"blocks": [{"type": "@app"}]` per supportare Katching Bundles, subscription pickers, app review. Fonte di verità: `references/editability-and-app-blocks.md`.
 - **Mobile-first**: il traffico arriva da ads (>80% mobile). Ogni sezione deve girare benissimo a 375px.
 - **Un push per volta, sempre selettivo**. Mai `theme push` senza `--only`. Il `--only` include SOLO i file della pagina corrente.
@@ -372,6 +373,80 @@ Salva in `current_page.build_mode` ∈ {`A`, `B`}.
 
 ---
 
+### 6.x.4.bis — CSS scraping del competitor (OPZIONALE, +20-25% di fedeltà visuale)
+
+Senza CSS scraping, la skill ricostruisce HTML+CSS della sezione "a vista" dagli screenshot — fedeltà ~70%. Con CSS scraping che attinge ai file CSS sorgente del competitor (pubblicamente accessibili tramite `curl` come fa qualsiasi browser), la fedeltà sale a ~90%.
+
+Fonte di verità: `references/css-scraping.md`.
+
+`AskUserQuestion`: "Vuoi attivare CSS scraping per fedeltà visuale ~90% (+5-10 minuti) o saltare e accettare ~70%?"
+
+- **Sì, attiva CSS scraping (Recommended per design complessi)** → procedi a 6.x.4.bis.1
+- **No, salta** → vai a 6.x.5
+
+#### 6.x.4.bis.1 — Estrazione CSS sorgente
+
+```bash
+# 1) Leggi l'HTML della pagina competitor
+curl -sL "<current_page.url>" -A "Mozilla/5.0 (compatible; CSS-scraper)" \
+  -o "/tmp/cb-comp-<NN>.html"
+
+# 2) Estrai i <link rel="stylesheet"> e i <style> inline dall'HTML
+#    (puoi farlo con grep o regex via Bash + python3)
+```
+
+Per ogni `<link rel="stylesheet" href="...">` trovato:
+- Risolvi href relativo → URL assoluto (prepend competitor domain)
+- `curl -sL "<css-url>" -o "/tmp/cb-comp-<NN>-<n>.css"`
+
+Concatena tutti i CSS scaricati + i `<style>` inline in un file unico:
+```bash
+cat /tmp/cb-comp-<NN>-*.css > "/tmp/cb-comp-<NN>-aggregated.css"
+# Aggiungi anche i <style> inline estratti dall'HTML
+```
+
+Salva il path in `current_page.competitor_css_path`.
+
+Mostra all'utente:
+```
+✓ CSS scraping completato:
+  - File HTML scaricato: /tmp/cb-comp-<NN>.html (XXX KB)
+  - N file CSS scaricati: /tmp/cb-comp-<NN>-aggregated.css (YYY KB)
+  - Z regole CSS rilevate
+```
+
+#### 6.x.4.bis.2 — Identificazione classi competitor per ogni sezione
+
+Per ogni sezione mappata in 6.x.2, identifica nel HTML del competitor il **selettore CSS principale** che la rappresenta. Tre opzioni in ordine di affidabilità:
+
+**Opzione 1 (preferita) — Tu identifichi la classe via screenshot di Inspect Element**
+
+`AskUserQuestion`: "Per ogni sezione, mandami lo screenshot del browser DevTools → Elements panel con l'elemento root della sezione selezionato (così vedo `<section class='nome-classe-competitor'>` o simili). Oppure incolla la prima riga HTML dell'elemento root per ogni sezione."
+
+L'utente apre DevTools, ispeziona la sezione, copia l'HTML del nodo root (es. `<section class="hero-banner-1234 above-fold">`).
+
+Salva in `current_page.sections[<NN>].competitor_selector` per ogni sezione.
+
+**Opzione 2 — Auto-discovery via WebFetch + euristiche**
+
+Se l'utente non vuole fare Inspect manualmente: usa `WebFetch` per leggere l'HTML scaricato (`/tmp/cb-comp-<NN>.html`) e identifica i `<section>`, `<div>` di alto livello che corrispondono alle sezioni mappate in 6.x.2 (matching per ordine di apparizione + heading visibile).
+
+Approssimativo, da validare con l'utente prima di procedere.
+
+**Opzione 3 — Skip e ricostruisci a vista**
+
+Se il competitor usa framework con classi auto-generate (CSS modules tipo `.css-1abc2de` di styled-components o Emotion) le classi sono linkate a markup specifico che noi non riproduciamo identico. In quel caso CSS scraping non aiuta sui selettori → torna alla modalità "ricostruisci a vista" (~70% fedeltà). Avvisa l'utente.
+
+#### 6.x.4.bis.3 — Stato pronto per la build
+
+Salva in `current_page.css_scraping_active = true` e procedi a 6.x.5 con accesso a:
+- `current_page.competitor_css_path`: file CSS aggregato del competitor
+- `current_page.sections[<NN>].competitor_selector`: selettore root per ogni sezione
+
+Il flusso di build di 6.x.5.b userà queste informazioni per riapplicare le regole CSS del competitor sulle nostre classi scoped.
+
+---
+
 ### 6.x.5 — STEP 1: Literal clone (lingua originale, input-driven anti-hallucination)
 
 **Contesto operativo del workflow** (importante leggere): la skill costruisce un **clone autorizzato** del sito competitor sul tema dell'utente, partendo da contenuti **forniti direttamente dall'utente** (non scrappati da Claude). Il prodotto finale è un **derivative work**: lo Step 1 produce una bozza in lingua originale che lo Step 2 traduce in italiano e adatta al brand del cliente. L'utente è il proprietario del workspace target e ha autorizzazione del cliente per questo lavoro di clone + traduzione (use case tipico: agenzia che porta uno store competitor di un proprio cliente nel mercato IT). I testi forniti dall'utente sono input dell'utente, non riproduzione fatta da Claude — vanno strutturati nei `default` dello schema senza alterarli.
@@ -465,6 +540,8 @@ Per ogni sezione in `current_page.sections`, scrivi `sections/<current_page.sect
   </style>
   ```
   Dove `BRAND_PRIMARY_HEX` è il valore di `brand.palette.primary` di Fase 4 hardcoded come **default** nel CSS — l'utente può poi cambiarlo dal theme editor (settings color).
+
+**Se CSS scraping è attivo** (`current_page.css_scraping_active === true`): per ogni sezione, prima di scrivere CSS proprio, **estrai dal file `current_page.competitor_css_path` le regole rilevanti** che colpiscono il `competitor_selector` di quella sezione e i suoi figli. Riapplica quei valori (padding, margin, font-size, font-weight, line-height, color, background, border-radius, box-shadow, ecc.) sulle nostre classi scoped. Vedi `references/css-scraping.md` per la procedura dettagliata di estrazione + riapplicazione.
 
 #### B) Editabilità COMPLETA dal theme editor (HARD RULE)
 
@@ -838,6 +915,7 @@ Se chiudi: dichiara il clone pronto.
 
 - `competitor-discovery.md` — come WebFetch + estrazione palette/font/logo dal markup competitor
 - `visual-replication.md` — regole per ricreare design 1:1 da screenshot + URL (mobile-first, breakpoint, classi scoped)
+- `css-scraping.md` — procedura per scaricare CSS pubblico del competitor e riapplicarlo (Fase 6.x.4.bis, fedeltà ~90%)
 - `editability-and-app-blocks.md` — hard rule editabilità schema, blocks pattern, `@app` block per PDP (Katching Bundles)
 - `localization-it.md` — principi traduzione ENG → IT, tono di voce, cosa fare con claim regulatory IT
 - `home-template.md` — gestione `index.<slug>.json` + assignment manuale come homepage
