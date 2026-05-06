@@ -27,7 +27,8 @@ Segui le 8 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` come ga
 - **🛍️ PDP above-the-fold custom 1:1**: per le PDP, la sezione `main` (`product-information` nativa Shopify) NON va lasciata col config di default. Va analizzata vs competitor sopra-piega elemento per elemento (pills, rating, price, variant picker, quantity, buy buttons, accelerated checkout, bundle widget, trust badges) e configurata di conseguenza: `disabled: true` per blocchi native non presenti nel competitor, custom CSS per stylizzare il button add-to-cart, slot `@app` per Katching/subscription/recensioni se il competitor li usa. Errore tipico da NON fare: lasciare il prezzo Shopify default visibile quando il competitor lo nasconde, lasciare i bottoni Apple Pay/Google Pay quando il competitor mostra solo "Add to cart". Fonte di verità: `references/pdp-main-configuration.md`.
 - **🔍 PDP main quasi sempre custom**: `product-information` native va bene SOLO per PDP super-essenziali. Le PDP DTC moderne hanno bundle picker, free gift selector, mystery gift, urgency, trust strip, accordion product details — tutti elementi che NON esistono in product-information default. Prima di scegliere `main_strategy`, esegui un **diagnostic dell'HTML competitor** in Fase 6.x.2.0: cerca signal `kaching-bundle`, `free-gift`, `countdown-timer`, `recharge-subscriptions`, `trust-strip`, accordion `<details>`. Se trovi UNO di questi → `main_strategy = "custom"`. Default sicuro in dubbio: custom.
 - **📸 PDP — input materiali in 2 batch**: per le PDP NON basta un full-page lungo. La buy box dx ha 6-8 elementi in ~600px, illeggibili compressi. Workflow PDP-specific: Batch 1 (above-the-fold prioritario) → screenshot HD della SOLA buy box dx + gallery sx + lista esplicita degli elementi della sidebar (titolo/stelle/bullet/bundle/free gift/ATC/accordion/trust). Batch 2 (below-the-fold) → multi-section o full-page del corpo. Senza batch 1 separato, la skill costruisce la buy box "a memoria" → hallucination garantita.
-- **🪜 Livelli di replica L1-L4** (anti-plagio + anti-"sito tradotto"): non tutti i testi del competitor vanno copiati nei `default` indistintamente. **L1** struttura/CSS = replica 1:1 (legittimo design pattern). **L2** labels/CTA/headings funzionali ≤8 parole = literal. **L3** bullet/badges/microclaim ≤12 parole = literal. **L4** paragrafi narrativi / testimonial reali / individual reviews / about copy = **PLACEHOLDER**, l'utente compila in Step 2 con la sua voce. Errore tipico: copiare 4 paragrafi narrativi del competitor nei `default` → quando l'utente li traduce in IT suonano come "sito tradotto" e il modello in più li potrebbe rifiutare per copyright. Inserisci `[Storytelling — descrivi problema cliente]` nei `default` L4. Fonte: vedi 6.x.5.a-pre.
+- **🪜 Default action: LITERAL sempre** (anti-asimmetria PDP/funnel): per ogni testo che vedi negli screenshot/HTML competitor, il comportamento di base è **literal nei `default` dello schema**, indipendentemente dal tipo di pagina (funnel, PDP, home, extras) e dalla classificazione informativa L1/L2/L3/L4. Non auto-convertire MAI un testo in placeholder. La classificazione L1-L4 è solo una mappa per discutere con l'utente: i testi L4 (narrativi/testimonial/about) li proponi come "vuoi convertire in placeholder?" e l'utente decide. Senza conferma esplicita: literal. Errore tipico: skill che sulla PDP mette placeholder per "scriverli con voce brand" mentre nel funnel ha messo literal — risultato asimmetrico e PDP non identica al competitor.
+- **🔁 Workflow testi INVARIANTE per ogni tipo di pagina**: il modo di raccogliere e applicare i testi è IDENTICO per funnel, PDP, home, extras. L'utente fornisce HTML salvato (o copy/paste) → la skill mette i testi letterali nei `default` dello schema. **NIENTE asimmetrie** tra tipi di pagina. Le differenze tra tipi riguardano la STRUTTURA (PDP main custom, batch 1+batch 2, home assignment, funnel layout chromeless) — NON il modo di trattare i testi.
 - **⭐ Sezioni reviews: replica esattamente quello che il competitor ha**: niente più, niente meno. Alcuni competitor hanno solo carousel testimonial, alcuni solo grid con breakdown, alcuni entrambe in posizioni separate, alcuni nessuna sezione dedicata (solo star rating accanto al titolo via app), alcuni testimonial integrati in altre sezioni. **Non aggiungere una carousel "perché è il pattern tipico"** se il competitor non ce l'ha. **Non rimuovere una grid** se invece c'è. Identifica le sezioni reviews effettivamente presenti negli screenshot e replica solo quelle. Vedi `references/pdp-main-configuration.md` sezione "Sezioni reviews" per i pattern di riferimento.
 - **Mobile-first**: il traffico arriva da ads (>80% mobile). Ogni sezione deve girare benissimo a 375px.
 - **Un push per volta, sempre selettivo**. Mai `theme push` senza `--only`. Il `--only` include SOLO i file della pagina corrente.
@@ -690,7 +691,23 @@ Salva in `current_page.palette` la palette finale da usare in 6.x.5.b. **Tutti i
 
 #### 6.x.5.a-pre — Livelli di replica (L1-L4)
 
-**Distinzione critica**: "literal clone in lingua originale" non significa "tutti i testi del competitor vanno copiati nei `default` dello schema". Diverse categorie di testo richiedono trattamenti diversi:
+⚠️ **Default action**: per ogni testo che vedi negli screenshot/HTML competitor, il **comportamento di base è LITERAL nei `default`** (popolazione esatta dello schema con il testo del competitor). Questo vale per **TUTTI i tipi di pagina** (funnel, PDP, home, extras) **senza eccezioni e senza differenze**.
+
+L1-L4 è una **classificazione facoltativa** che la skill può mostrare all'utente come riepilogo. Solo dopo che l'utente classifica esplicitamente certi pezzi come L4 e dice "questi voglio placeholder", la skill può convertire da literal a placeholder. **Senza conferma esplicita dell'utente, ogni testo va literal.**
+
+**Errore tipico da NON fare**: applicare automaticamente "L4 → placeholder" senza chiedere all'utente. Se il competitor ha 4 paragrafi narrativi, la skill li mette literal nei `default`. Sarà l'utente a decidere se vuole convertirli in placeholder per "scriverli con la sua voce" o lasciarli literal.
+
+**Workflow di raccolta testi è INVARIANTE per tutti i tipi di pagina**:
+- Funnel/advertorial → user fornisce HTML salvato → testi letterali nei `default`
+- PDP → user fornisce HTML salvato → testi letterali nei `default`
+- Home → user fornisce HTML salvato → testi letterali nei `default`
+- Extras → user fornisce HTML salvato → testi letterali nei `default`
+
+Le differenze tra tipi di pagina riguardano la **STRUTTURA** (PDP ha sezione main custom, home ha index template, funnel ha layout chromeless), **NON il modo di trattare i testi forniti dall'utente**. Se il modello sente "PDP è speciale" → applica la specialità SOLO alla struttura, MAI ai testi. I testi vanno literal sempre, identico al funnel.
+
+---
+
+**Distinzione (informativa, non auto-applicata)**: "literal clone in lingua originale" si riferisce al posizionamento dei testi nei `default`. Diverse categorie di testo possono ricevere trattamenti diversi MA solo se l'utente conferma esplicitamente:
 
 ```
 === LIVELLI DI REPLICA ===
@@ -728,22 +745,28 @@ L4 — Paragrafi narrativi / testimonial reali / individual reviews / about copy
      vale lasciare placeholder dall'inizio.
 ```
 
-**Decision tree per la skill** durante 6.x.5.a/b:
+**Decision tree** durante 6.x.5.a/b (RISPETTARE):
 
 ```
 Per ogni testo che vedi nello screenshot/HTML competitor:
 
-Domanda 1: È layout/style (CSS) o testo (contenuto)?
-  → CSS  → L1 (replica nel CSS della sezione)
-  → testo → vai alla domanda 2
+Step 1 — DEFAULT ACTION: literal nel `default` dello schema.
+         Indipendentemente da L1/L2/L3/L4. Il testo va copiato così com'è.
 
-Domanda 2: È una label/CTA/heading funzionale ≤ 8 parole?
-  → SÌ → L2 → literal nel `default`
-  → NO → vai alla domanda 3
+Step 2 — Classificazione informativa (per riepilogo all'utente):
+   - L1 (struttura/CSS): non è un "testo nei default" — vive nel CSS
+   - L2 (label/CTA ≤ 8 parole): literal
+   - L3 (bullet/microclaim ≤ 12 parole): literal
+   - L4 (paragrafi narrativi/testimonial/about): literal di default,
+     MA puoi proporre all'utente "vuoi convertire questo in placeholder
+     per scriverlo con la tua voce in Step 2?"
 
-Domanda 3: È un bullet/badge/microclaim ≤ 12 parole?
-  → SÌ → L3 → literal nel `default`
-  → NO → L4 → PLACEHOLDER nel `default`, l'utente compila in Step 2
+Step 3 — Se utente esplicitamente dice "L4 → placeholder per questo pezzo":
+         allora sostituisci il default literal con
+         "[descrizione del topic — da scrivere]".
+         SOLO con conferma esplicita.
+
+Default sicuro: literal sempre. Mai auto-conversione a placeholder.
 ```
 
 **Esempi pratici**:
@@ -756,24 +779,33 @@ Domanda 3: È un bullet/badge/microclaim ≤ 12 parole?
 | "Eliminate foul odour" | L3 | `"default": "Eliminate foul odour"` |
 | "100% natural ingredients" | L3 | `"default": "100% natural ingredients"` |
 | "Free shipping over $50" | L3 | `"default": "Free shipping over $50"` |
-| 4-paragraph "Our Dirty Secret" story | L4 | `"default": "<p>[Storytelling — paragrafo 1: descrivi il problema. Paragrafo 2: ...]</p>"` |
-| Testimonial reale "Sarah, NY: I've been using..." | L4 | `"default": "<p>[Testimonial — sostituire con recensione reale di tua cliente]</p>"` |
-| Long product description "Crafted with..." | L4 | `"default": "<p>[Descrizione prodotto — scrivere con tono brand cliente]</p>"` |
-| Founder biography paragrafo | L4 | `"default": "<p>[Bio founder — fornita dal cliente]</p>"` |
+| 4-paragraph "Our Dirty Secret" story | L4 | DEFAULT literal: copia i 4 paragrafi così come sono. Mostra all'utente "vuoi convertirlo in placeholder?". Se sì → `"default": "<p>[Storytelling — paragrafo 1: descrivi il problema...]</p>"`. Se no o nessuna risposta → resta literal |
+| Testimonial reale "Sarah, NY: I've been using..." | L4 | DEFAULT literal MA con suggerimento all'utente: "questo è un testimonial reale del competitor. Vuoi placeholder per usare i tuoi?" |
+| Long product description "Crafted with..." | L4 | DEFAULT literal. Suggerimento opzionale di placeholder all'utente |
+| Founder biography paragrafo | L4 | DEFAULT literal. Suggerimento opzionale di placeholder |
 
-A fine 6.x.5 la skill **mostra all'utente il riepilogo di TUTTI i placeholder L4** che dovrà compilare in Step 2 (o subito):
+A fine 6.x.5.a la skill mostra all'utente il riepilogo dei testi **classificati come L4** (lunghi/narrativi/testimonial), in due colonne:
 
 ```
-=== Placeholder L4 da compilare ===
+=== Testi L4 — vuoi mantenerli literal o convertirli in placeholder? ===
 
-Sezione 04 (story):           [Storytelling — 4 paragrafi sul problema cliente]
-Sezione 07 (testimonials):    [3-5 testimonial reali della tua clientela]
-Sezione 09 (founder):         [Bio founder + storia brand]
+Sezione 04 (story) — 4 paragrafi narrativi:
+  LITERAL (default): testo competitor copiato così com'è
+  oppure
+  PLACEHOLDER: "[Storytelling — 4 paragrafi sul problema cliente]"
 
-Vuoi compilarli ora prima di Step 2 (traduzione IT) o dopo?
+Sezione 07 (testimonials) — 5 quote di clienti:
+  LITERAL (default): nomi + foto + quote del competitor
+  oppure
+  PLACEHOLDER: "[3-5 testimonial reali della tua clientela]"
+
+Per default lascio tutto LITERAL. Dimmi quali specifici vuoi convertire 
+in placeholder.
 ```
 
-⚠️ **Quando in dubbio tra L3 e L4**: scegli L4 (placeholder). È meglio chiedere all'utente di scrivere un testo che togliere un literal "creativo" in modo subdolo.
+`AskUserQuestion`: "Conferma LITERAL per tutto, o mandami la lista di pezzi da convertire in placeholder."
+
+⚠️ **Quando in dubbio tra L3 e L4**: il dubbio non importa — il default è literal in entrambi i casi. Lascia decidere l'utente se vuole un placeholder.
 
 #### 6.x.5.a — Raccolta testi letterali dall'utente (NO scraping da parte di Claude)
 
