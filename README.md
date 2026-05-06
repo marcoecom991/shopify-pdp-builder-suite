@@ -190,11 +190,12 @@ Reference files per skill:
 - `section-schema-patterns.md` — pattern schema editabile (condiviso con PDP)
 - `auth-pattern.md`, `selective-push.md`, `section-naming.md` — copie infrastruttura
 
-`skills/clone-competitor-store/references/` (7 file specifici):
+`skills/clone-competitor-store/references/` (8 file specifici):
 - `competitor-discovery.md` — WebFetch + estrazione palette/font/logo/tono dai URL competitor
 - `visual-replication.md` — regole per ricostruire design 1:1 da screenshot mobile + desktop, breakpoint, classi scoped
 - `css-scraping.md` — download CSS pubblico del competitor via curl + riapplicazione su classi nostre (Fase 6.x.4.bis opzionale, fedeltà visiva ~90%)
 - `editability-and-app-blocks.md` — hard rule editabilità schema + supporto `{"type": "@app"}` per Katching Bundles, subscription, recensioni
+- `pdp-main-configuration.md` — analisi above-the-fold competitor + config sezione `main` PDP (disabled native blocks, custom CSS button, slot @app per Katching/subscription, hide native price)
 - `localization-it.md` — traduzione ENG→IT, claim regulatory IT (cosmetici, integratori), adattamento valute/unità/formati
 - `home-template.md` — gestione `index.<slug>.json` + assignment manuale come homepage
 - `page-types-extras.md` — template per contattaci, traccia ordine, FAQ, about, blog, collection (chiamate alla fine del flusso principale)

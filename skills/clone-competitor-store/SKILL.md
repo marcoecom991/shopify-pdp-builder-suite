@@ -24,6 +24,7 @@ Segui le 8 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` come ga
 - **Replica visiva 1:1**: ogni sezione si costruisce **da zero** (no riuso sezioni esistenti del tema). HTML+CSS scritti per matchare lo screenshot/markup competitor.
 - **🎨 CSS scraping opzionale per fedeltà ~90%**: se l'utente lo attiva in Fase 6.x.4.bis, la skill scarica i file CSS pubblici del competitor via `curl` (sono asset pubblici, mandati al browser di chiunque visiti il sito) e ne riusa le regole nelle sezioni clonate. Questo porta la fedeltà visiva da ~70% (ricostruzione a vista) a ~90% (CSS sorgente riapplicato). Senza CSS scraping, la skill fa il suo meglio dagli screenshot ma valori esatti di padding/margin/font-weight saranno approssimazioni.
 - **Tutto editabile dal theme editor — REGOLA CRITICA**: niente hardcoded nel markup. Testi/immagini/link/colori sempre come `settings`/`blocks` nello schema. Per le sezioni PDP è OBBLIGATORIO `"blocks": [{"type": "@app"}]` per supportare Katching Bundles, subscription pickers, app review. Fonte di verità: `references/editability-and-app-blocks.md`.
+- **🛍️ PDP above-the-fold custom 1:1**: per le PDP, la sezione `main` (`product-information` nativa Shopify) NON va lasciata col config di default. Va analizzata vs competitor sopra-piega elemento per elemento (pills, rating, price, variant picker, quantity, buy buttons, accelerated checkout, bundle widget, trust badges) e configurata di conseguenza: `disabled: true` per blocchi native non presenti nel competitor, custom CSS per stylizzare il button add-to-cart, slot `@app` per Katching/subscription/recensioni se il competitor li usa. Errore tipico da NON fare: lasciare il prezzo Shopify default visibile quando il competitor lo nasconde, lasciare i bottoni Apple Pay/Google Pay quando il competitor mostra solo "Add to cart". Fonte di verità: `references/pdp-main-configuration.md`.
 - **Mobile-first**: il traffico arriva da ads (>80% mobile). Ogni sezione deve girare benissimo a 375px.
 - **Un push per volta, sempre selettivo**. Mai `theme push` senza `--only`. Il `--only` include SOLO i file della pagina corrente.
 - **Conferma prima di azioni irreversibili** (creazione file, push live, override homepage).
@@ -628,6 +629,16 @@ Per ogni sezione in `current_page.sections`, scrivi `sections/<current_page.sect
 
 **Se CSS scraping è attivo** (`current_page.css_scraping_active === true`): per ogni sezione, prima di scrivere CSS proprio, **estrai dal file `current_page.competitor_css_path` le regole rilevanti** che colpiscono il `competitor_selector` di quella sezione e i suoi figli. Riapplica quei valori (padding, margin, font-size, font-weight, line-height, color, background, border-radius, box-shadow, ecc.) sulle nostre classi scoped. Vedi `references/css-scraping.md` per la procedura dettagliata di estrazione + riapplicazione.
 
+**Se la pagina è una PDP** (`current_page.type === "pdp"`): la sezione `main` (`product-information` nativa Shopify) richiede configurazione speciale per matchare l'above-the-fold del competitor. Vedi `references/pdp-main-configuration.md` per:
+- Checklist analisi above-the-fold competitor (pills, badge, rating, price, variant picker, quantity, buy buttons, accelerated checkout, bundle widget, urgency, trust badges)
+- Mapping checklist → configurazione blocchi JSON del template (`disabled: true/false` per native blocks, `block_order` corretto)
+- Custom CSS per stylizzare il button add-to-cart native (colore/font/border-radius/dimensioni del competitor)
+- Slot `@app` per Katching Bundles / subscription / recensioni se il competitor li usa
+- Block `hide_native_price` per nascondere il prezzo native quando il competitor non lo mostra above-the-fold
+- Istruzioni utente per attivare manualmente app blocks (Katching, ReCharge, ecc.) dal theme editor
+
+⚠️ **Critico per PDP**: se il competitor ha un bundle widget (es. "Buy 1 / Buy 2 / Buy 3" con sconti), un subscription picker, recensioni custom, ecc., questi vanno **replicati 1:1 above-the-fold**. Anche se sono gestiti da app esterne (non costruite da noi), la skill deve **predisporre lo slot** (block `@app` nel `block_order` giusto) e istruire l'utente come attivarli dal theme editor. Senza questi elementi, la PDP è un guscio vuoto rispetto al competitor — il valore principale di una PDP advertorial-driven è esattamente nel bundle widget + CTA stilizzato.
+
 #### B) Editabilità COMPLETA dal theme editor (HARD RULE)
 
 Vedi `references/editability-and-app-blocks.md` per dettaglio. Riassunto operativo:
@@ -1018,6 +1029,7 @@ Se chiudi: dichiara il clone pronto.
 - `visual-replication.md` — regole per ricreare design 1:1 da screenshot + URL (mobile-first, breakpoint, classi scoped)
 - `css-scraping.md` — procedura per scaricare CSS pubblico del competitor e riapplicarlo (Fase 6.x.4.bis, fedeltà ~90%)
 - `editability-and-app-blocks.md` — hard rule editabilità schema, blocks pattern, `@app` block per PDP (Katching Bundles)
+- `pdp-main-configuration.md` — analisi above-the-fold competitor + config sezione `main` PDP (disabled native blocks, custom CSS button, slot @app per Katching/subscription)
 - `localization-it.md` — principi traduzione ENG → IT, tono di voce, cosa fare con claim regulatory IT
 - `home-template.md` — gestione `index.<slug>.json` + assignment manuale come homepage
 - `page-types-extras.md` — template per contattaci, traccia ordine, FAQ, about, blog, collection
