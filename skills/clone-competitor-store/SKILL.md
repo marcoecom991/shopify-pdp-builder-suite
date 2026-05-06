@@ -25,6 +25,9 @@ Segui le 8 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` come ga
 - **🎨 CSS scraping opzionale per fedeltà ~90%**: se l'utente lo attiva in Fase 6.x.4.bis, la skill scarica i file CSS pubblici del competitor via `curl` (sono asset pubblici, mandati al browser di chiunque visiti il sito) e ne riusa le regole nelle sezioni clonate. Questo porta la fedeltà visiva da ~70% (ricostruzione a vista) a ~90% (CSS sorgente riapplicato). Senza CSS scraping, la skill fa il suo meglio dagli screenshot ma valori esatti di padding/margin/font-weight saranno approssimazioni.
 - **Tutto editabile dal theme editor — REGOLA CRITICA**: niente hardcoded nel markup. Testi/immagini/link/colori sempre come `settings`/`blocks` nello schema. Per le sezioni PDP è OBBLIGATORIO `"blocks": [{"type": "@app"}]` per supportare Katching Bundles, subscription pickers, app review. Fonte di verità: `references/editability-and-app-blocks.md`.
 - **🛍️ PDP above-the-fold custom 1:1**: per le PDP, la sezione `main` (`product-information` nativa Shopify) NON va lasciata col config di default. Va analizzata vs competitor sopra-piega elemento per elemento (pills, rating, price, variant picker, quantity, buy buttons, accelerated checkout, bundle widget, trust badges) e configurata di conseguenza: `disabled: true` per blocchi native non presenti nel competitor, custom CSS per stylizzare il button add-to-cart, slot `@app` per Katching/subscription/recensioni se il competitor li usa. Errore tipico da NON fare: lasciare il prezzo Shopify default visibile quando il competitor lo nasconde, lasciare i bottoni Apple Pay/Google Pay quando il competitor mostra solo "Add to cart". Fonte di verità: `references/pdp-main-configuration.md`.
+- **🔍 PDP main quasi sempre custom**: `product-information` native va bene SOLO per PDP super-essenziali. Le PDP DTC moderne hanno bundle picker, free gift selector, mystery gift, urgency, trust strip, accordion product details — tutti elementi che NON esistono in product-information default. Prima di scegliere `main_strategy`, esegui un **diagnostic dell'HTML competitor** in Fase 6.x.2.0: cerca signal `kaching-bundle`, `free-gift`, `countdown-timer`, `recharge-subscriptions`, `trust-strip`, accordion `<details>`. Se trovi UNO di questi → `main_strategy = "custom"`. Default sicuro in dubbio: custom.
+- **📸 PDP — input materiali in 2 batch**: per le PDP NON basta un full-page lungo. La buy box dx ha 6-8 elementi in ~600px, illeggibili compressi. Workflow PDP-specific: Batch 1 (above-the-fold prioritario) → screenshot HD della SOLA buy box dx + gallery sx + lista esplicita degli elementi della sidebar (titolo/stelle/bullet/bundle/free gift/ATC/accordion/trust). Batch 2 (below-the-fold) → multi-section o full-page del corpo. Senza batch 1 separato, la skill costruisce la buy box "a memoria" → hallucination garantita.
+- **🪜 Livelli di replica L1-L4** (anti-plagio + anti-"sito tradotto"): non tutti i testi del competitor vanno copiati nei `default` indistintamente. **L1** struttura/CSS = replica 1:1 (legittimo design pattern). **L2** labels/CTA/headings funzionali ≤8 parole = literal. **L3** bullet/badges/microclaim ≤12 parole = literal. **L4** paragrafi narrativi / testimonial reali / individual reviews / about copy = **PLACEHOLDER**, l'utente compila in Step 2 con la sua voce. Errore tipico: copiare 4 paragrafi narrativi del competitor nei `default` → quando l'utente li traduce in IT suonano come "sito tradotto" e il modello in più li potrebbe rifiutare per copyright. Inserisci `[Storytelling — descrivi problema cliente]` nei `default` L4. Fonte: vedi 6.x.5.a-pre.
 - **Mobile-first**: il traffico arriva da ads (>80% mobile). Ogni sezione deve girare benissimo a 375px.
 - **Un push per volta, sempre selettivo**. Mai `theme push` senza `--only`. Il `--only` include SOLO i file della pagina corrente.
 - **Conferma prima di azioni irreversibili** (creazione file, push live, override homepage).
@@ -231,9 +234,11 @@ Per ogni pagina, esegui il sub-workflow 6.x:
 
 ### 6.x.1 — Input materiali competitor
 
-**Strategia di input**: gli screenshot servono per il **layout visivo** (capire come sono fatte le sezioni, ordine, spacing, tipografia, colori). I **testi** invece arrivano dall'utente direttamente in formato strutturato — gli screenshot full-page compressi sono inaffidabili per OCR e Claude finirebbe per inventare. Sono due input separati, raccolti in 2 fasi:
+**Strategia di input**: gli screenshot servono per il **layout visivo** (capire come sono fatte le sezioni, ordine, spacing, tipografia, colori). I **testi** invece arrivano dall'utente direttamente in formato strutturato — gli screenshot full-page compressi sono inaffidabili per OCR e Claude finirebbe per inventare. Sono due input separati, raccolti in 2 fasi.
 
-**Materiali per il LAYOUT** (richiesti adesso, in Fase 6.x.1):
+**Le PDP richiedono workflow speciale** perché la buy box dx ha 6-8 elementi piccoli concentrati in ~600px di altezza, illeggibili in un full-page compresso. Per le PDP la skill chiede materiali in **2 batch**: prima above-the-fold (HD), poi below-the-fold.
+
+#### Caso A — Pagina NON-PDP (funnel, home, extras)
 
 ```
 === Pagina <N>/<TOT>: <tipo pagina> ===
@@ -250,16 +255,157 @@ separatamente in Fase 6.x.5.a in formato strutturato (HTML salvato o
 copy/paste manuale) per evitare errori di lettura.
 ```
 
-**Materiali per i TESTI** (richiesti dopo, in Fase 6.x.5.a — vedi sotto). Non chiederli ora.
+#### Caso B — Pagina PDP (workflow speciale in 2 batch)
+
+⚠️ **Per le PDP NON ti basta un full-page compresso**: la buy box dx (titolo / stelle / bullet / bundle / free gifts / ATC / accordion / trust strip) è una zona densissima di 600×800px che in un full-page lungo diventa illeggibile.
+
+**Batch 1 — Above-the-fold (PRIORITARIO)**:
+
+```
+=== PDP <N>/<TOT>: above-the-fold ===
+
+Per la buy box devo lavorare con HD. Mi servono:
+
+DESKTOP (~1440px):
+  1. Screenshot HD della SOLA buy box dx (tutta la sidebar destra, 
+     dal titolo al primo accordion) — risoluzione naturale, NO compressione
+  2. Screenshot HD della gallery sx (immagine principale + thumbnail rail)
+  3. Screenshot HD del header/announcement bar
+
+MOBILE (~390px iPhone):
+  4. Screenshot HD del primo viewport mobile (tutto quello che vedi senza scrollare)
+  5. Screenshot HD del secondo viewport (1° scroll, di solito gallery → buy box mobile)
+
+LISTA ESPLICITA degli elementi che vedi nella sidebar dx (in ordine top→bottom):
+  Mandami una lista tipo:
+    - Pills "BESTSELLER" + "ZERO ALLERGENI"
+    - Title H1
+    - Stars 4.8/5 + "2,431 reviews"
+    - Bullet x4 (icona ✓)
+    - Bundle box "BUY 1 / BUY 2 / BUY 3" con sconti
+    - Free gift selector "Choose your gift"
+    - Add to cart button (verde acceso)
+    - Express checkout (Shop Pay)
+    - Trust strip (5 icone: free shipping, 30-day return, ecc.)
+    - Accordion: "PRODUCT DETAILS" + "INGREDIENTS" + "HOW TO USE"
+
+  È importante perché alcuni elementi sono nascosti agli screenshot 
+  (collapsed, hover-only, dependent on bundle selection).
+```
+
+**Batch 2 — Below-the-fold**:
+
+```
+=== PDP <N>/<TOT>: below-the-fold ===
+
+Ora il resto della pagina:
+  - Screenshot multi-section (5-10 screenshot per le sezioni sotto la buy box: 
+    benefits, how it works, ingredients, comparison, reviews, FAQ, ecc.)
+  - Stesso su mobile
+
+Se la PDP non ha sezioni below-the-fold complesse (è una PDP corta), basta 
+un full-page lungo dei rimanenti pixel.
+```
+
+**URL competitor**: confermami quello già salvato in Fase 4 o passamene uno aggiornato.
 
 ⚠️ **Se l'utente fornisce screenshot di scarsa qualità** (sfocati, viewport tagliato): chiedi sostituzione prima di procedere. Per il layout serve qualità visibile.
 
 Salva in:
-- `current_page.screenshots.desktop` (path/ID immagine o array se multi-section)
-- `current_page.screenshots.mobile`
+- `current_page.screenshots.atf_desktop` (above-the-fold buy box dx + gallery sx)
+- `current_page.screenshots.atf_mobile`
+- `current_page.screenshots.below_fold_desktop` (multi-section o full-page below)
+- `current_page.screenshots.below_fold_mobile`
+- `current_page.atf_elements_list` (lista esplicita elementi sidebar dx)
 - `current_page.url`
 
 ### 6.x.2 — Analisi visiva e mappatura sezioni
+
+#### 6.x.2.0 — HTML diagnostic checklist (SOLO se la pagina è PDP)
+
+⚠️ **Obbligatorio per PDP**: prima di mappare le sezioni, esegui un **diagnostic check sull'HTML salvato** del competitor (Formato A di 6.x.5.a, se l'utente lo ha già fornito; altrimenti chiedilo subito) per capire se la sezione `main` della PDP **deve essere completamente custom** o se basta il `product-information` nativo Shopify.
+
+Le PDP DTC moderne hanno quasi sempre sezione main **custom**: bundle picker (Katching/Bundler), free gift selectors, mystery gift, urgency cards, trust strip, accordion product details. Tutti elementi che NON esistono in `product-information` default e devono essere costruiti come blocchi custom o ospitati come `@app` slot.
+
+**Procedura del diagnostic** (Bash + grep sull'HTML salvato):
+
+```bash
+HTML_FILE="<path-to-saved-html>"
+
+echo "=== Diagnostic main-custom signals ==="
+echo ""
+
+echo "→ Bundle picker (Katching/Bundler/FastBundle):"
+grep -oEi "(kaching-bundle|kaching-bundles-block|bundler-bundle|fast-bundle|<bundle-|class=\"[^\"]*bundle[^\"]*\")" "$HTML_FILE" | head -5
+
+echo ""
+echo "→ Free gift / Mystery gift:"
+grep -oEi "(free-gift|gift-tier|mystery-gift|mystery-box|gift-selector|claim-your-gift)" "$HTML_FILE" | head -5
+
+echo ""
+echo "→ Urgency / countdown:"
+grep -oEi "(countdown-timer|urgency-card|stock-counter|low-stock|<countdown|data-countdown)" "$HTML_FILE" | head -5
+
+echo ""
+echo "→ Subscription apps (ReCharge/Smartrr/Skio/Bold):"
+grep -oEi "(recharge-subscriptions|smartrr|skio-|bold-subscriptions|subscribe-and-save|<subscription-)" "$HTML_FILE" | head -5
+
+echo ""
+echo "→ Trust strip / icons row:"
+grep -oEi "(trust-strip|trust-badges|guarantee-row|shipping-icons|free-shipping-badge|class=\"[^\"]*badges-row[^\"]*\")" "$HTML_FILE" | head -5
+
+echo ""
+echo "→ Product details accordion:"
+grep -oEi "(product-details-accordion|<details[^>]*>|class=\"[^\"]*accordion[^\"]*product[^\"]*\"|INGREDIENTS|HOW TO USE)" "$HTML_FILE" | head -5
+```
+
+**Regola**: se TROVI almeno UNO di questi signal nell'HTML del competitor → la sezione `main` della PDP **DEVE essere costruita come custom**:
+
+```
+current_page.main_strategy = "custom"
+```
+
+Significa che la sezione `main` del template JSON userà `product-information` come scheletro MA con custom liquid blocks aggiuntivi che replicano bundle/gift/urgency/trust/accordion. Inoltre alcuni elementi richiederanno slot `@app` (Katching, ReCharge) che l'utente attiverà manualmente dal theme editor a fine build.
+
+Vedi `references/pdp-main-configuration.md` per il pattern dettagliato di main custom + fix #4 sotto per le sezioni reviews doppie.
+
+Se invece il diagnostic NON trova niente → main standard product-information va bene:
+
+```
+current_page.main_strategy = "native"
+```
+
+⚠️ **Default sicuro**: se sei in dubbio, scegli `"custom"`. Il costo di costruire una main custom inutilmente è basso (manciata di blocchi custom_liquid in più). Il costo di lasciare main native quando il competitor ha bundle/gift è alto (la PDP è visivamente diversa, conversione collassa).
+
+Mostra il risultato del diagnostic all'utente:
+
+```
+=== Diagnostic main-custom — risultati ===
+
+Bundle picker:        ✓ trovato (<kaching-bundles-block>)
+Free gift:            ✓ trovato ("free-gift" + "gift-tier")
+Mystery gift:         ✗ non rilevato
+Urgency:              ✓ trovato (countdown-timer)
+Subscription:         ✗ non rilevato
+Trust strip:          ✓ trovato (.trust-strip)
+Accordion details:    ✓ trovato (<details> + "INGREDIENTS")
+
+→ La sezione main DEVE essere CUSTOM (5 signals positivi su 6)
+  La skill costruirà product-information con blocchi custom per:
+  - Bundle picker (slot @app per Katching)
+  - Free gift selector (block custom_liquid o @app a seconda del tema)
+  - Urgency countdown (block custom_liquid)
+  - Trust strip (block custom_liquid)
+  - Accordion product details (block custom_liquid con <details>)
+```
+
+`AskUserQuestion`: "Confermi `main: custom` oppure forziamo `main: native`?"
+
+Salva in `current_page.main_strategy` e passa alla mappatura sezioni 6.x.2.
+
+---
+
+#### 6.x.2.1 — Mappatura sezioni (per tutti i tipi di pagina)
 
 Usa `WebFetch` sull'URL competitor + analizza **soprattutto gli screenshot** ricevuti per ricostruire la **lista ordinata di sezioni** che compongono la pagina.
 
@@ -540,6 +686,93 @@ VARIABILE          | PAGINA (competitor reale) | GLOBALE Fase 4 | NOTA
 Salva in `current_page.palette` la palette finale da usare in 6.x.5.b. **Tutti i `default` dei `setting type:"color"` delle sezioni di questa pagina useranno questa palette**, NON la `brand.palette` globale.
 
 ⚠️ La `brand.palette` globale resta comunque utile per: header/footer (se condivisi tra le pagine), home (se non ha override propri), pagine extra. Solo questa pagina specifica usa il proprio override.
+
+#### 6.x.5.a-pre — Livelli di replica (L1-L4)
+
+**Distinzione critica**: "literal clone in lingua originale" non significa "tutti i testi del competitor vanno copiati nei `default` dello schema". Diverse categorie di testo richiedono trattamenti diversi:
+
+```
+=== LIVELLI DI REPLICA ===
+
+L1 — Struttura / CSS / Design
+     Esempio: layout grid, padding, font-family, colori, border-radius.
+     Trattamento: replica 1:1 (pattern di design pubblico, totalmente legittimo).
+     Nello schema: nessun "testo" da inserire — vive nel CSS della sezione.
+
+L2 — Labels funzionali / CTA / Headings strutturali (≤ 8 parole)
+     Esempio: "Add to cart", "Frequently Asked Questions", "What's inside",
+     "Shipping & Returns", "Most popular", "Free", "30-day guarantee".
+     Trattamento: literal nei `default` dello schema (sono pattern marketing
+     standard del mercato, non originali del competitor).
+
+L3 — Bullet / badge / micro-claim brevi (frasi-claim ≤ 12 parole)
+     Esempio: "Eliminate foul odour", "100% natural ingredients", 
+     "Fast-acting formula", "Travel size friendly".
+     Trattamento: literal nei `default` (sono claim brevi che condensano
+     un beneficio, non scrittura creativa lunga del competitor).
+
+L4 — Paragrafi narrativi / testimonial reali / individual reviews / about copy
+     Esempio: "Dirty Secret" 4 paragrafi storytelling, recensione di Sarah
+     che racconta la sua esperienza, biografia founder, lunga descrizione 
+     del processo produttivo.
+     Trattamento: NON literal. Inserisci PLACEHOLDER esplicito nei `default`
+     tipo "[Paragrafo narrativo da scrivere — vedi competitor: <breve descrizione 
+     del topic>]". L'utente compila in Step 2 con la sua voce/i suoi dati.
+     Motivo: (a) i testi narrativi del competitor sono originali creativi; 
+     riprodurli sotto altro brand sembra plagio anche dopo traduzione. 
+     (b) i testimonial sono UGC di clienti del competitor — riprodurli sotto
+     altro brand è problematico per identità di terzi. (c) Pratica: una PDP
+     IT che traduce paragrafo per paragrafo un narrative US suona come "sito
+     tradotto", convertendo male — l'utente la riscriverà comunque, tanto 
+     vale lasciare placeholder dall'inizio.
+```
+
+**Decision tree per la skill** durante 6.x.5.a/b:
+
+```
+Per ogni testo che vedi nello screenshot/HTML competitor:
+
+Domanda 1: È layout/style (CSS) o testo (contenuto)?
+  → CSS  → L1 (replica nel CSS della sezione)
+  → testo → vai alla domanda 2
+
+Domanda 2: È una label/CTA/heading funzionale ≤ 8 parole?
+  → SÌ → L2 → literal nel `default`
+  → NO → vai alla domanda 3
+
+Domanda 3: È un bullet/badge/microclaim ≤ 12 parole?
+  → SÌ → L3 → literal nel `default`
+  → NO → L4 → PLACEHOLDER nel `default`, l'utente compila in Step 2
+```
+
+**Esempi pratici**:
+
+| Testo competitor | Categoria | Trattamento |
+|------------------|-----------|-------------|
+| "Add to cart" | L2 | `"default": "Add to cart"` |
+| "Frequently Asked Questions" | L2 | `"default": "Frequently Asked Questions"` |
+| "BEST SELLER" | L2 | `"default": "BEST SELLER"` |
+| "Eliminate foul odour" | L3 | `"default": "Eliminate foul odour"` |
+| "100% natural ingredients" | L3 | `"default": "100% natural ingredients"` |
+| "Free shipping over $50" | L3 | `"default": "Free shipping over $50"` |
+| 4-paragraph "Our Dirty Secret" story | L4 | `"default": "<p>[Storytelling — paragrafo 1: descrivi il problema. Paragrafo 2: ...]</p>"` |
+| Testimonial reale "Sarah, NY: I've been using..." | L4 | `"default": "<p>[Testimonial — sostituire con recensione reale di tua cliente]</p>"` |
+| Long product description "Crafted with..." | L4 | `"default": "<p>[Descrizione prodotto — scrivere con tono brand cliente]</p>"` |
+| Founder biography paragrafo | L4 | `"default": "<p>[Bio founder — fornita dal cliente]</p>"` |
+
+A fine 6.x.5 la skill **mostra all'utente il riepilogo di TUTTI i placeholder L4** che dovrà compilare in Step 2 (o subito):
+
+```
+=== Placeholder L4 da compilare ===
+
+Sezione 04 (story):           [Storytelling — 4 paragrafi sul problema cliente]
+Sezione 07 (testimonials):    [3-5 testimonial reali della tua clientela]
+Sezione 09 (founder):         [Bio founder + storia brand]
+
+Vuoi compilarli ora prima di Step 2 (traduzione IT) o dopo?
+```
+
+⚠️ **Quando in dubbio tra L3 e L4**: scegli L4 (placeholder). È meglio chiedere all'utente di scrivere un testo che togliere un literal "creativo" in modo subdolo.
 
 #### 6.x.5.a — Raccolta testi letterali dall'utente (NO scraping da parte di Claude)
 

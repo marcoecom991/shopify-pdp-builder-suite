@@ -291,6 +291,100 @@ Se il competitor è WordPress/WooCommerce, Magento, altro:
 - Però la logica è identica: identifica gli elementi above-the-fold e replica solo quelli, disabilita quello che non serve, applica style CSS custom al CTA
 - L'utente farà l'integrazione di app Shopify (Katching) come setup post-clone, non c'è equivalente diretto su WP
 
+## Sezioni reviews — pattern doppio (carousel + grid)
+
+Le PDP DTC hanno tipicamente **DUE blocchi review** distinti, separati da altre sezioni intermedie. Sono visivamente diversi e servono a scopi diversi:
+
+### Sezione A — Carousel testimonial (highlight, posizionato sopra)
+
+Posizione tipica: subito dopo benefits / how-it-works, prima delle reviews complete. Funzione: prova sociale "narrative" che ricorda al lettore "altri come te lo amano già".
+
+Caratteristiche visive:
+- Carousel orizzontale (3-6 cards visibili su desktop, 1-2 su mobile)
+- Header con highlight giallo o accent ("LOVED BY 50,000+ CUSTOMERS")
+- Pills "Verified" / "Verified Buyer" su ogni card
+- Card content: headline ("Game changer!" / "Best purchase ever") + paragrafo medio + nome cliente + foto cliente
+
+File: `sections/<prefix>-pdp-NN-testimonial-carousel.liquid`
+
+Schema:
+- `settings`: section heading, subheading, badge text ("LOVED BY..."), CTA opzionale
+- `blocks` array di tipo `testimonial`:
+  - `image_picker` foto cliente
+  - `text` headline ("Best ever!")
+  - `richtext` body (paragrafo)
+  - `text` author name
+  - `text` author location/credential
+  - `checkbox` verified
+
+⚠️ **Le testimonianze sono L4** (placeholder). Inserisci 3-5 placeholder nel default `blocks` lasciando struttura ma con testo `[Testimonial — sostituire con recensione tua cliente]`.
+
+### Sezione B — Reviews grid (con breakdown stelle)
+
+Posizione tipica: bottom della pagina prima del footer, oppure penultima sezione prima di "Closing CTA". Funzione: prova sociale "data-driven" — più recensioni totali, breakdown 5★/4★/.../1★, sort/filter, "view more".
+
+Caratteristiche visive:
+- Header con avg rating big (es. "4.8 / 5") + "Based on 2,431 reviews"
+- 5 bar orizzontali per rating breakdown (5★ ████████░ 1,832  /  4★ ████░ 421  /  etc.)
+- Sort dropdown (Most recent / Most helpful / Highest / Lowest)
+- Filter pills (Verified / With photos / Specific traits)
+- Grid di review cards (2 columns desktop, 1 mobile) con: rating stars, date, author, title, body, photo opzionale, "X people found this helpful"
+- "Load more" button al fondo
+
+File: `sections/<prefix>-pdp-NN-reviews-grid.liquid`
+
+Schema:
+- `settings`: section heading ("Customer Reviews"), avg rating, total count, sort options labels, filter labels
+- `blocks` array di tipo `review_breakdown` (5 blocks fissi per stelle 1-5):
+  - `text` star count ("5 stars")
+  - `text` percentage / count
+- `blocks` array di tipo `review_card`:
+  - `range` rating 1-5
+  - `text` author + date
+  - `text` title
+  - `richtext` body
+  - `image_picker` photo (opz.)
+  - `checkbox` verified
+  - `text` "X people found helpful"
+
+⚠️ **App-driven alternative**: la maggior parte degli store usa app per reviews (Judge.me, Loox, Yotpo, Stamped). In quel caso la sezione `<prefix>-pdp-NN-reviews-grid.liquid` può essere semplicemente un wrapper con header custom + slot `@app` dove l'utente attiva l'app review block dal theme editor:
+
+```json
+"settings": [
+  { "type": "text", "id": "section_heading", "label": "Heading sezione", "default": "Customer Reviews" }
+],
+"blocks": [
+  { "type": "@app" }
+]
+```
+
+Istruzione utente a fine build:
+```
+=== Per attivare le reviews ===
+
+1. Theme editor → PDP → Sezione "Customer Reviews" → Add block (icona +)
+2. Tab "Apps" → seleziona "Judge.me Reviews" / "Loox Reviews" / "Yotpo" 
+   (in base all'app installata)
+3. Save.
+
+Il block app gestirà avg rating + breakdown + grid + sort/filter automaticamente.
+```
+
+### Differenze chiave (per distinguerle)
+
+| Caratteristica | Carousel testimonial | Reviews grid |
+|----------------|---------------------|--------------|
+| Posizione PDP | Above (vicino a benefits) | Below (verso il footer) |
+| Layout | Orizzontale slider | Vertical grid |
+| Numero cards visibili | 3-6 (curated) | 10-50+ (con load more) |
+| Source | Curated dal merchant | UGC reale via app |
+| Ruolo conversione | Hook emotional | Validation razionale |
+| Scope clone skill | Sezione custom liquid | Wrapper + slot @app |
+
+**Errore tipico da NON fare**: codificare un'unica sezione "reviews" che mischia carousel + grid + breakdown. Le PDP DTC le tengono separate per ragioni di UX (la carousel high-impact va sopra come hook, la grid completa va sotto come deep dive).
+
+---
+
 ## Note operative
 
 - **Theme variations**: Horizon usa `disabled: true` per native blocks. Dawn più vecchio usa `_product-form-buy-buttons-show_dynamic_checkout: false`. Verifica nel tema target qual è il pattern corretto.
