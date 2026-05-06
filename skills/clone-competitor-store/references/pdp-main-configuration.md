@@ -291,13 +291,27 @@ Se il competitor è WordPress/WooCommerce, Magento, altro:
 - Però la logica è identica: identifica gli elementi above-the-fold e replica solo quelli, disabilita quello che non serve, applica style CSS custom al CTA
 - L'utente farà l'integrazione di app Shopify (Katching) come setup post-clone, non c'è equivalente diretto su WP
 
-## Sezioni reviews — pattern doppio (carousel + grid)
+## Sezioni reviews — replica solo quello che il competitor ha
 
-Le PDP DTC hanno tipicamente **DUE blocchi review** distinti, separati da altre sezioni intermedie. Sono visivamente diversi e servono a scopi diversi:
+⚠️ **Regola**: replica le sezioni reviews **ESATTAMENTE come le ha il competitor**, niente di più, niente di meno. Niente assunzioni "tipo DTC".
 
-### Sezione A — Carousel testimonial (highlight, posizionato sopra)
+Le PDP nel mondo DTC presentano variazioni multiple. Alcuni pattern comuni che potresti incontrare:
 
-Posizione tipica: subito dopo benefits / how-it-works, prima delle reviews complete. Funzione: prova sociale "narrative" che ricorda al lettore "altri come te lo amano già".
+- **Solo carousel testimonial** (curated 3-6 cards, posizionato sopra) — niente grid
+- **Solo reviews grid** (avg + breakdown + grid + sort, posizionato sotto) — niente carousel
+- **Doppia: carousel + grid separati** — pattern descritto sotto
+- **Single inline testimonial highlight** (1-2 quotes within another section, no dedicated reviews block)
+- **Reviews integrate in social proof generale** (testimonial mescolati a press features, awards, certifications)
+- **Nessuna sezione reviews dedicata** — store nuovi o brand minimal
+- **Solo widget app inline** (Judge.me/Loox star rating accanto al titolo, nessuna sezione full)
+
+**Quale costruire**: guarda gli screenshot del competitor, identifica le sezioni reviews effettivamente presenti (zero/una/due/integrate), e replica solo quelle. Non aggiungere una carousel se il competitor non ce l'ha "perché è il pattern tipico". Non rimuovere una grid se il competitor ce l'ha "perché preferisci la carousel".
+
+Sotto sono documentati i 2 pattern più comuni come reference architetturale, **non come template obbligatorio**.
+
+### Pattern A — Carousel testimonial (highlight)
+
+Quando lo trovi: alcune PDP, posizionato sopra (dopo benefits/how-it-works) come hook emotional. Funzione: prova sociale "narrative" curata.
 
 Caratteristiche visive:
 - Carousel orizzontale (3-6 cards visibili su desktop, 1-2 su mobile)
@@ -317,11 +331,11 @@ Schema:
   - `text` author location/credential
   - `checkbox` verified
 
-⚠️ **Le testimonianze sono L4** (placeholder). Inserisci 3-5 placeholder nel default `blocks` lasciando struttura ma con testo `[Testimonial — sostituire con recensione tua cliente]`.
+⚠️ **Le testimonianze sono L4** (placeholder). Inserisci tante card quante il competitor ne ha — non più, non meno — con default `[Testimonial — sostituire con recensione tua cliente]`.
 
-### Sezione B — Reviews grid (con breakdown stelle)
+### Pattern B — Reviews grid con breakdown
 
-Posizione tipica: bottom della pagina prima del footer, oppure penultima sezione prima di "Closing CTA". Funzione: prova sociale "data-driven" — più recensioni totali, breakdown 5★/4★/.../1★, sort/filter, "view more".
+Quando lo trovi: alcune PDP, posizionato sotto (verso il footer) come deep dive data-driven. Funzione: prova sociale aggregata — più recensioni totali, breakdown 5★/4★/.../1★, sort/filter, "view more".
 
 Caratteristiche visive:
 - Header con avg rating big (es. "4.8 / 5") + "Based on 2,431 reviews"
@@ -370,7 +384,9 @@ Istruzione utente a fine build:
 Il block app gestirà avg rating + breakdown + grid + sort/filter automaticamente.
 ```
 
-### Differenze chiave (per distinguerle)
+### Differenze chiave (per distinguerli QUANDO entrambi sono presenti)
+
+Tabella per aiutarti a riconoscerli sugli screenshot — applica solo quando il competitor ha effettivamente entrambi:
 
 | Caratteristica | Carousel testimonial | Reviews grid |
 |----------------|---------------------|--------------|
@@ -381,7 +397,11 @@ Il block app gestirà avg rating + breakdown + grid + sort/filter automaticament
 | Ruolo conversione | Hook emotional | Validation razionale |
 | Scope clone skill | Sezione custom liquid | Wrapper + slot @app |
 
-**Errore tipico da NON fare**: codificare un'unica sezione "reviews" che mischia carousel + grid + breakdown. Le PDP DTC le tengono separate per ragioni di UX (la carousel high-impact va sopra come hook, la grid completa va sotto come deep dive).
+**Errori tipici da NON fare**:
+- Codificare un'unica sezione che mischia carousel + grid + breakdown quando il competitor le tiene separate
+- Aggiungere una carousel "perché è il pattern tipico" quando il competitor non ce l'ha
+- Fondere due sezioni del competitor in una "perché sembrano simili"
+- Rimuovere una delle due perché "ridondante" — se il competitor le ha, le replichi entrambe
 
 ---
 
