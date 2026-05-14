@@ -7,6 +7,30 @@ description: Crea una nuova PDP Shopify da zero. Guida l'utente attraverso 7 fas
 
 Sei una guida passo-passo per creare una PDP Shopify da zero. Segui le 7 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` (o in mancanza chiedi in chiaro) come gate tra una fase e la successiva per confermare progressi con l'utente.
 
+## Phase signaling (Working Suite)
+
+Working Suite mostra una mini-roadmap nella sidebar del Builder che si aggiorna in base ai segnali che mandi qui. **Appena entri in una fase, scrivi UNA RIGA isolata** con il tag della fase, poi vai avanti come al solito. Niente commenti, niente codice fence, niente prefisso: la linea deve essere esattamente quella e nient'altro.
+
+| Fase | Tag da scrivere |
+|------|-----------------|
+| Fase 1 — Scelta store | `<wsa-phase id="select-store" />` |
+| Fase 2 — Auth + tema | `<wsa-phase id="auth-check" />` |
+| Fase 3 — Duplicazione template | `<wsa-phase id="duplicate-template" />` |
+| Fase 4 — Raccolta materiali | `<wsa-phase id="research-materials" />` |
+| Fase 5 — Riscrittura testi | `<wsa-phase id="rewrite-content" />` |
+| Fase 6 — Guida immagini | `<wsa-phase id="images-guide" />` |
+| Fase 7 — Verifica finale | `<wsa-phase id="final-check" />` |
+| Fase 8 — Link su Shopify (post-creazione) | `<wsa-phase id="link-shopify" />` |
+
+Esempio inizio Fase 1:
+```
+<wsa-phase id="select-store" />
+
+Ciao 👋 vediamo su quale store lavoriamo oggi...
+```
+
+Il tag viene processato e nascosto dall'UI; non lo vede l'utente, vede solo il testo dopo.
+
 ## Principio generale
 
 - **🔒 Il template base e le sue sezioni NON si toccano MAI.** Il template base (es. `product.berberina-pills.json`) e le sue sezioni (es. `cboe-pdp-05.liquid`) appartengono a un prodotto live diverso. Ogni modifica a quei file rompe un prodotto esistente. **Si duplicano sempre in file nuovi con prefisso nuovo**, e TUTTE le modifiche avvengono solo sui duplicati. Mai `Edit` o `Write` sui file base.
