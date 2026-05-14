@@ -80,9 +80,9 @@ Comportamento:
 
 ## Fase 1 — Scelta store
 
-Mostra all'utente la lista store configurati. Usa `AskUserQuestion` con un'opzione per store + "Altro".
+Mostra all'utente la lista store configurati. Usa `AskUserQuestion` — UNA opzione per ogni store letto da `config/stores.json`, **niente "Altro" / niente onboarding inline**.
 
-Se "Altro": chiedi nome, `shopify_domain` (*.myshopify.com), theme ID, path workdir, path env. Aggiungi voce a `stores.json`.
+> ℹ️ **Quando gira dentro Working Suite** (`$WSA_INTERNAL_KEY` valorizzato), gli store sono quelli configurati dal pannello (`Configurazioni → Store`). Se manca quello che serve, **NON aggiungerlo dalla chat**: chiedi all'operatore di aggiungerlo via dashboard e ricaricare. Il `stores.json` qui è in sola lettura — il wrapper lo riscrive ad ogni init.
 
 Salva in memoria: `store.name`, `store.shopify_domain`, `store.theme_id`, `store.workdir_path`, `store.env_path`.
 
@@ -90,7 +90,9 @@ Salva in memoria: `store.name`, `store.shopify_domain`, `store.theme_id`, `store
 
 ## Fase 2 — Verifica auth + scelta tema
 
-1. Se `store.env_path` non esiste: guida alla creazione del `.env` (Theme Access token → `shptka_*`). Fonte: `references/auth-pattern.md`.
+> ℹ️ **Sotto Working Suite** il `.env` è **già scritto dal wrapper** con il token Theme Access salvato in `Configurazioni → Store → Credenziali`. **Non chiedere mai il token in chat**: se esiste e ha `SHOPIFY_CLI_THEME_TOKEN` non vuoto, procedi. Se è vuoto → fermati e di': "Manca il token in **Configurazioni → Store**, aggiungilo e ricarica la chat."
+
+1. Se `store.env_path` non esiste in modalità manuale: guida alla creazione del `.env` (Theme Access token → `shptka_*`). Fonte: `references/auth-pattern.md`. **In modalità Working Suite questo non dovrebbe mai capitare** — se capita, è un bug del wrapper.
 2. Lancia:
    ```bash
    cd "<store.workdir_path>"

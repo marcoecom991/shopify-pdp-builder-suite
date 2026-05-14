@@ -74,11 +74,15 @@ Comportamento:
 
 ## Fase 1 — Scelta store
 
-Mostra all'utente la lista degli store configurati. Usa `AskUserQuestion` con un'opzione per store + "Altro" (per aggiungerne uno nuovo on-the-fly).
+Mostra all'utente la lista degli store configurati con `AskUserQuestion` — UNA opzione per ogni store letto da `config/stores.json`, niente "Altro" / niente onboarding inline.
 
-Se l'utente sceglie "Altro":
-- Chiedi nome store, `shopify_domain` (*.myshopify.com), theme ID, path workdir e path env.
-- Aggiungi la voce a `stores.json` e procedi.
+> ℹ️ **Quando gira dentro Working Suite** (`$WSA_INTERNAL_KEY` valorizzato), gli store sono sempre quelli che l'operatore ha già configurato dal pannello (`Configurazioni → Store`). Se manca quello che serve, **NON aggiungerlo dalla chat**: chiedi all'utente di aggiungerlo via dashboard. Esempio risposta:
+>
+> > "Lo store che cerchi non risulta in `config/stores.json`. Aggiungilo da **Configurazioni → Store** nella dashboard, poi torna qui e ricarica la chat (`Cmd+Shift+R`). Ti aspetto."
+>
+> Sotto Working Suite il file `stores.json` viene **generato dal wrapper a ogni init** — qualsiasi modifica manuale del file viene sovrascritta. Quindi è un punto in sola lettura per la skill.
+
+In modalità manuale (skill lanciata direttamente da `claude` sul Mac, niente `$WSA_INTERNAL_KEY`) puoi continuare a offrire "Altro" per onboarding inline, ma è uno scenario residuo: la dashboard è la via primaria.
 
 Salva in memoria i campi dello store scelto:
 - `store.name`
@@ -91,7 +95,11 @@ Salva in memoria i campi dello store scelto:
 
 ## Fase 2 — Verifica auth + scelta tema
 
-1. Controlla che `store.env_path` esista. Se NO:
+> ℹ️ **Sotto Working Suite** il file `store.env_path` è **già generato** dal wrapper con il token Theme Access che l'operatore ha salvato in `Configurazioni → Store → Credenziali`. **Non chiedere mai il token in chat**: se il file esiste ed è non-vuoto, procedi direttamente al `theme list`. Se il file esiste ma è vuoto/commentato, fermati e di': "Manca il token Theme Access per questo store. Aggiungilo da **Configurazioni → Store**, poi ricarica la chat." Non avviare alcun onboarding inline del token.
+>
+> In modalità manuale (Mac, niente wrapper) puoi continuare a chiedere il token come prima.
+
+1. Controlla che `store.env_path` esista e contenga `SHOPIFY_CLI_THEME_TOKEN=` non vuoto. Se NO **in modalità Working Suite** → fermati come spiegato sopra. Se NO **in modalità manuale**:
    - Spiega all'utente cosa serve (token Theme Access). Fonte: `references/auth-pattern.md`, sezione "Come generare un nuovo Theme Access token".
    - Guidalo a creare il file: chiedigli di incollare il token, poi scrivi `store.env_path` con:
      ```
