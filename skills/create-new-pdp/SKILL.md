@@ -485,6 +485,60 @@ Per ogni sezione che contiene immagini:
    - Impostare pricing, inventory, variants.
    - Collegare il sistema bundling (se usato) — se il prodotto usa Katching o simili, consulta `references/workflow-faithful-rebuild.md` per pattern form nativo.
 
+---
+
+## Fase 8 — Link su Shopify (solo se gira dentro Working Suite)
+
+Questa fase **vale solo se la skill è invocata dal Builder di Working Suite**. Lo capisci da una sola condizione: la variabile d'ambiente `WSA_INTERNAL_KEY` è valorizzata. Se è vuota, **salta interamente questa fase** (non avere paura, in Working Suite il wrapper la inietta automaticamente).
+
+```bash
+test -n "$WSA_INTERNAL_KEY" && echo "WSA_ACTIVE" || echo "WSA_INACTIVE"
+```
+
+Se `WSA_ACTIVE` → emetti il tag e procedi.
+Se `WSA_INACTIVE` → finita la skill, niente da fare qui.
+
+### 1. Segnala l'inizio della fase
+
+```
+<wsa-phase id="link-shopify" />
+```
+
+### 2. Chiedi all'utente l'URL della PDP live
+
+Chiedi (testo libero o `AskUserQuestion`):
+
+> "PDP pronta 🎉 Per chiudere il lavoro, incolla qui l'URL della pagina prodotto live su Shopify — quella che useremo nelle analytics. Esempio: `https://<store>.myshopify.com/products/<handle>` oppure il custom domain."
+
+Aspetta che l'utente incolli un URL. Conserva la risposta in `$PRODUCT_URL`.
+
+### 3. Chiama l'endpoint interno del wrapper
+
+```bash
+curl -sS -X POST "$WSA_INTERNAL_BASE/link-shopify" \
+  -H "Content-Type: application/json" \
+  -H "X-WSA-Key: $WSA_INTERNAL_KEY" \
+  -d "$(printf '{"url":"%s"}' "$PRODUCT_URL")"
+```
+
+La risposta JSON ha tre campi che ti dicono cosa è successo:
+
+- `"ok": true` — operazione riuscita
+- `"handle": "<slug>"` — slug estratto dall'URL
+- `"productLinked": true|false` — `true` se la skill è collegata a un workspace_products row, `false` se l'handle non corrisponde a nessun prodotto registrato in Working Suite
+
+Se `productLinked: false`, **spiega all'utente** in chiaro:
+
+> "Ho linkato l'URL alla sessione ma il prodotto `<handle>` non risulta ancora nel catalogo Working Suite. Vai su Configurazioni → Prodotti e aggiungilo, oppure dimmi se vuoi che continuiamo lo stesso."
+
+Se `ok: false`, mostra il messaggio di errore e suggerisci di copiare l'URL e fare il link manualmente dalla pagina sessione Builder.
+
+### 4. Chiudi
+
+Conferma all'utente che la sessione è ora collegata al prodotto live. Nessuna altra azione richiesta.
+
+---
+
 ## Troubleshooting rapido
 
 | Sintomo                                         | Possibile causa                                       | Fix                                                                 |

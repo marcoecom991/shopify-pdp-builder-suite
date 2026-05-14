@@ -642,6 +642,48 @@ Quando tutto ✓: dichiara il funnel pronto. Suggerisci:
 | Push fallisce con Liquid syntax error           | Schema malformato, brace unmatched              | Leggi error line, `Edit` puntuale, ri-push                         |
 | Mobile text overflow                            | Font-size fissi in px anziché clamp             | Sostituisci con `clamp(1rem, 4vw, 1.5rem)` o media query           |
 
+---
+
+## Fase 10 — Link su Shopify (solo se gira dentro Working Suite)
+
+Vale **solo** se la skill gira dentro Working Suite. Lo capisci controllando l'env `WSA_INTERNAL_KEY`:
+
+```bash
+test -n "$WSA_INTERNAL_KEY" && echo "WSA_ACTIVE" || echo "WSA_INACTIVE"
+```
+
+Se `WSA_INACTIVE` → salta.
+Se `WSA_ACTIVE` → emetti il tag e procedi.
+
+### 1. Segnala l'inizio
+
+```
+<wsa-phase id="link-shopify" />
+```
+
+### 2. Chiedi all'utente l'URL della page funnel live
+
+> "Funnel pronto 🎉 Incolla l'URL della pagina su Shopify — quella che vedrebbe il visitatore. Esempio: `https://<store>.myshopify.com/pages/<handle>` o il custom domain."
+
+Salva la risposta in `$PAGE_URL`.
+
+### 3. Chiama l'endpoint interno
+
+```bash
+curl -sS -X POST "$WSA_INTERNAL_BASE/link-shopify" \
+  -H "Content-Type: application/json" \
+  -H "X-WSA-Key: $WSA_INTERNAL_KEY" \
+  -d "$(printf '{"url":"%s"}' "$PAGE_URL")"
+```
+
+Per sessioni funnel il wrapper salva `linked_url` + `linked_handle` (la page), mentre il **prodotto target** del funnel è già stato deciso in Fase 5 (struttura → "URL destinazione") e va salvato separatamente. Se vuoi anche quello legato esplicitamente al `workspace_product_id`, dopo questa chiamata fai una seconda chiamata identica passando `{"url":"$PRODUCT_URL"}` con l'URL del prodotto target — il wrapper si arrangia (per funnel non aggiorna `workspace_product_id` in automatico, ma serve come fallback se in futuro estendiamo il flow).
+
+### 4. Chiudi
+
+Conferma all'utente. Fine.
+
+---
+
 ## File correlati (references)
 
 - `references/auth-pattern.md` — `.env`, Theme Access token, verifica connessione.
