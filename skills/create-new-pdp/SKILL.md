@@ -31,6 +31,24 @@ Ciao 👋 vediamo su quale store lavoriamo oggi...
 
 Il tag viene processato e nascosto dall'UI; non lo vede l'utente, vede solo il testo dopo.
 
+## Question conventions (Working Suite)
+
+Quando devi chiedere all'utente di scegliere fra opzioni discrete (incluso `Sì/No`, `Conferma/Annulla`, qualsiasi domanda chiusa) **usa SEMPRE il tool `AskUserQuestion`**, mai testo libero. Working Suite renderizza l'`AskUserQuestion` come un pannello cliccabile sotto la chat: senza pillole l'utente deve digitare la risposta a mano, persa la metà del valore del flusso strutturato.
+
+**Non duplicare la domanda nel testo prima del tool.** Working Suite mostra GIÀ la domanda + opzioni nel pannello in fondo. Se la scrivi anche in prosa nella bubble, l'utente la vede due volte e occupa spazio inutile.
+
+- ❌ Sbagliato:
+  > "Su quale store vogliamo lavorare oggi?
+  > [poi chiamata AskUserQuestion con la stessa domanda]"
+
+- ✅ Giusto:
+  > [contesto minimo se serve, p.es. "Trovati 2 store configurati"]
+  > [poi chiamata AskUserQuestion]
+
+Per "una sola opzione disponibile" + serve conferma esplicita: usa comunque AskUserQuestion con due opzioni `Procedi con <nome>` e `Indietro`, niente testo extra. Per "una sola opzione e l'utente non deve confermare" (es. una decisione che la skill può prendere da sola in modo non-ambiguo): vai avanti senza chiedere.
+
+Per le domande aperte/numeriche (es. "incolla il token", "scrivi il nome del prodotto", "dammi l'URL competitor") va bene chiedere in testo — quelle non hanno opzioni discrete e Working Suite renderà l'input testuale nella barra in basso.
+
 ## Principio generale
 
 - **🔒 Il template base e le sue sezioni NON si toccano MAI.** Il template base (es. `product.berberina-pills.json`) e le sue sezioni (es. `cboe-pdp-05.liquid`) appartengono a un prodotto live diverso. Ogni modifica a quei file rompe un prodotto esistente. **Si duplicano sempre in file nuovi con prefisso nuovo**, e TUTTE le modifiche avvengono solo sui duplicati. Mai `Edit` o `Write` sui file base.

@@ -35,6 +35,16 @@ Ciao 👋 partiamo scegliendo lo store del funnel...
 
 Il tag viene processato e nascosto dall'UI; l'utente vede solo il testo dopo.
 
+## Question conventions (Working Suite)
+
+Per domande con opzioni discrete (`Sì/No`, scelte di lista, conferme) **usa SEMPRE `AskUserQuestion`**, mai testo libero. Working Suite renderizza il tool come pannello cliccabile sotto la chat. Senza tool l'utente deve digitare a mano, perdendo metà del valore del flusso strutturato.
+
+**Non duplicare la domanda nel testo prima del tool**: Working Suite mostra GIÀ il prompt nel pannello. Se la scrivi anche in prosa, l'utente la legge due volte. Limita la prosa a 1-2 righe di contesto se davvero serve.
+
+Per "una sola opzione configurata ma serve conferma": AskUserQuestion con `Procedi con <nome>` + `Indietro`. Per "una sola opzione e niente da confermare": vai avanti senza chiedere.
+
+Le domande aperte (token, URL, testi liberi) restano in testo: per quelle l'utente userà la barra input testuale in basso.
+
 ## Principi generali
 
 - **🔒 Mai toccare template o sezioni esistenti.** Le PDP e altre page template dello store sono intoccabili. Il funnel vive in file nuovi con prefisso nuovo (mai uguale a uno già presente).
