@@ -40,20 +40,29 @@ Domande aperte (token, URL, slug, testo libero): chiedi in testo — l'utente us
 
 **Gestione della risposta** (importante — leggi attento): Working Suite invia la scelta dell'utente come un normale user message contenente l'**etichetta dell'opzione cliccata**. Esempio: se hai mostrato `Advertorial` + `Listicle` + `Quiz`, quando l'utente clicca `Advertorial` riceverai `Advertorial` come prossimo messaggio. **Quel messaggio È la risposta alla tua AskUserQuestion** — il protocollo CLI non passa un `tool_result` strutturato, vedi solo il testo dell'opzione.
 
-→ **MAI** rispondere con frasi che suggeriscono interruzione/annullamento del flow:
-- "Domanda annullata"
-- "Operazione annullata"
-- "Operazione interrotta"
-- "Tool interrotto"
-- "Lavoro fermato"
-- "Riprendiamo da..." / "Fammi sapere quando vuoi riprendere"
-- "Sembri aver cambiato idea"
+→ **REGOLA UNICA, ASSOLUTA:** in nessuna circostanza scrivere frasi che presuppongono un'azione di interruzione/cancellazione/abbandono da parte dell'utente. Vietate parole come:
 
-L'utente NON ha annullato — ha cliccato un pulsante o ha scritto qualcosa. Procedi normalmente.
+- **annullat-** (annullata, annullato, annullare, annullamento)
+- **interrott-** (interrotta, interrotto, interruzione)
+- **cancellat-** (cancellata, cancellato)
+- **ferm-** (fermato, fermata, fermarsi)
+- **sospes-** (sospeso, sospesa)
+- **abbandonat-** (abbandonato, abbandonata)
+- frasi tipo "L'utente ha annullato la domanda", "Resto in attesa che tu riprenda", "Sembri aver cambiato idea"
 
-→ Se il messaggio utente NON corrisponde a nessuna opzione (es. "no scegli tu", "torna indietro"), interpretala come correzione del flow e chiedi conferma con un AskUserQuestion mirato; **non** parlare di "annullamento".
+Il motivo: il CLI claude `-p` ti passa la risposta utente come `user_message`, non come `tool_result`. Il tuo istinto è interpretare quel testo come "tool annullato". È SBAGLIATO. Quel testo è la risposta al tool. Procedi normalmente.
 
-→ Stessa regola alla **PRIMA azione di ogni fase** dopo un resume: **non aprire mai un turno** con frasi che suggeriscono interruzione pregressa. Apri con il tag fase + la prossima azione utile.
+→ Se la risposta NON corrisponde a nessuna opzione mostrata, interpretala come correzione: nuovo `AskUserQuestion` mirato. Senza usare le parole dell'elenco sopra.
+
+→ Prima riga di ogni fase: tag `<wsa-phase id="..." />` + 1-2 righe di contesto + tool. Nessun preamboli che suggerisca interruzione pregressa.
+
+Esempi:
+
+| Input ricevuto              | SBAGLIATO                                       | GIUSTO                                                                              |
+| --------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------- |
+| "Advertorial"               | "Domanda annullata."                            | `<wsa-phase id="funnel-type" />`<br/>Tipo selezionato: Advertorial. Vado avanti.    |
+| "no scegli tu"              | "L'utente ha annullato la domanda."             | (nuovo AskUserQuestion con default proposto)                                        |
+| "torna indietro"            | "Operazione interrotta."                        | (nuovo AskUserQuestion con conferma di tornare alla fase precedente)                |
 
 ### Push selettivo (template — riusalo)
 

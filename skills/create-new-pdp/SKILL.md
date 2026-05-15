@@ -36,20 +36,29 @@ Domande aperte (token, URL, slug, testi liberi): chiedi in testo — Working Sui
 
 **Gestione della risposta** (importante — leggi attento): Working Suite invia la scelta dell'utente come un normale user message contenente l'**etichetta dell'opzione cliccata**. Esempio: se hai mostrato opzioni `Glowria (Malta)` + `Nimea`, quando l'utente clicca la prima riceverai `Glowria (Malta)` come prossimo messaggio. **Quel messaggio È la risposta alla tua AskUserQuestion** — il protocollo CLI non passa un `tool_result` strutturato, quindi vedi solo il testo dell'opzione.
 
-→ **MAI** rispondere con frasi che suggeriscono interruzione/annullamento del flow:
-- "Domanda annullata"
-- "Operazione annullata"
-- "Operazione interrotta"
-- "Tool interrotto"
-- "Lavoro fermato"
-- "Riprendiamo da..." / "Fammi sapere quando vuoi riprendere"
-- "Sembri aver cambiato idea"
+→ **REGOLA UNICA, ASSOLUTA:** in nessuna circostanza scrivere frasi che presuppongono un'azione di interruzione/cancellazione/abbandono da parte dell'utente. Questo include — ma NON è limitato a — qualsiasi formulazione che contenga parole come:
 
-L'utente NON ha annullato — ha cliccato un pulsante o ha scritto qualcosa. Procedi normalmente con la sua scelta come se fosse una risposta naturale alla domanda.
+- **annullat-** (annullata, annullato, annullare, annullamento, ...)
+- **interrott-** (interrotta, interrotto, interruzione, ...)
+- **cancellat-** (cancellata, cancellato, cancellazione)
+- **ferm-** (fermato, fermata, fermo, fermarsi)
+- **sospes-** (sospeso, sospesa, sospensione)
+- **abbandonat-** (abbandonato, abbandonata)
+- frasi tipo "L'utente ha annullato la domanda", "Resto in attesa che tu riprenda", "Fammi sapere quando vuoi riprendere", "Sembri aver cambiato idea"
 
-→ Se il messaggio utente NON corrisponde a nessuna opzione che hai mostrato (es. frase libera tipo "no scegli tu", "torna indietro", o uno store diverso da quelli proposti), interpretala come correzione del flow e chiedi conferma con un AskUserQuestion mirato; **non** parlare di "annullamento" o "interruzione".
+Il motivo: il protocollo CLI di claude `-p` riceve la risposta dell'utente alla tua `AskUserQuestion` come un nuovo `user_message`, NON come un `tool_result` strutturato. Tu vedi solo il testo della risposta dopo la `tool_use`. Il tuo istinto è interpretare l'arrivo del testo come "non hai usato il tool, hai annullato". È **sbagliato**. Quel testo È la risposta al tool. Procedi normalmente trattando il testo come la scelta dell'utente fra le opzioni mostrate.
 
-→ Stessa regola alla **PRIMA azione di ogni fase** dopo un resume: **non aprire mai un turno** con frasi che lasciano intendere un interruzione/cancellazione pregressa, anche se sembrano "naturali". Apri con il tag fase + la prossima azione utile.
+→ Se la risposta dell'utente NON corrisponde a nessuna opzione mostrata (è una frase libera tipo "no scegli tu", "torna indietro", uno store diverso), interpretala come correzione del flow: chiedi conferma con un nuovo `AskUserQuestion` mirato. **Senza** mai usare le parole dell'elenco sopra.
+
+→ Stessa regola alla **prima riga di ogni fase**, anche dopo un resume: la prima cosa che scrivi è il tag `<wsa-phase id="..." />`, poi 1-2 righe di contesto, poi il tool. **Nessun preamboli** che suggerisca che il lavoro era stato fermato o interrotto, anche se al modello sembra "naturale" da dire.
+
+Esempi di risposte CORRETTE dopo aver ricevuto un input utente:
+
+| Input ricevuto                | Risposta SBAGLIATA                                  | Risposta GIUSTA                                                                    |
+| ----------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| "Procedi con Glowria (Malta)" | "Domanda annullata. Riprendiamo quando vuoi."       | `<wsa-phase id="auth-check" />`<br/>Verifico il token e elenco i temi disponibili. |
+| "no scegli tu"                | "L'utente ha annullato la domanda."                 | (nuovo AskUserQuestion con le stesse opzioni o conferma di proseguire con default) |
+| "torna indietro"              | "Operazione interrotta — riprendiamo dal precedente." | (nuovo AskUserQuestion con conferma di tornare alla fase precedente)              |
 
 ### Push selettivo (template di comando — riusalo ovunque)
 
