@@ -654,6 +654,27 @@ Al resume (`claude --resume <id>`):
 
 **Nota collaborativa**: la sessione è workspace-shared. Se chi apre adesso non è il creatore originale, comportati comunque normale: il contesto è in transcript.
 
+## Strumentazione analytics (OBBLIGATORIO)
+
+Ogni funnel creato da questa skill **deve** essere strumentato per la dashboard Analytics di Working Suite. Il SDK `window.wsa.track(name, payload)` è già installato sul theme degli store registrati in `analytics_sources`.
+
+**Cosa generare nelle sezioni:**
+
+- Su ogni **CTA** del funnel (hero CTA, closing CTA, eventuali CTA intermedie): `data-wsa-cta-id="<slug>"` + `data-wsa-cta-position` + script che emette `cta_click`. Pattern in `references/analytics-instrumentation.md`. **Questo è quello che ti dice quale CTA del funnel converte di più.**
+- Per funnel di **tipo `quiz`** (`funnel.type === "quiz"`): ogni step del quiz è una sezione separata che emette:
+  - `step_view` (IntersectionObserver al 50% in viewport)
+  - `step_answer` (click sul pulsante risposta) — DEVE includere `step`, `step_label`, `answer`, `answer_label`, `props.step_id`
+  - `step_back` (click su Indietro)
+  - `step_complete` (submit finale)
+  - Schema fields obbligatori per OGNI step section: `step_number` (number), `step_id` (text slug), `heading` (text/richtext) + blocks `answer` con `value` (slug) e `label` (texto umano).
+- Lascia automatici: `page_view`, `session_entry`, `scroll_depth`, `funnel_abandon`.
+
+**Quando applicare:** in Fase 8 (costruzione sezioni), ogni sezione che generi deve avere lo snippet `<script>` di strumentazione appropriato. La reference contiene gli script copia-incolla per CTA / step_view / step_answer / step_back / step_complete.
+
+**Schema editor:** tutti gli slug analytics (`cta_id`, `step_id`, `answer.value`) sono `text` setting esposti nello schema — l'operatore li vede nel theme editor e può modificarli se il setup analytics ha richieste specifiche. NON hardcoded nel markup.
+
+Reference: `references/analytics-instrumentation.md` (event catalog completo, pattern script, convenzioni naming).
+
 ## References
 
 - `auth-pattern.md` — `.env`, Theme Access token, modalità manuale
@@ -664,6 +685,7 @@ Al resume (`claude --resume <id>`):
 - `page-template-layout.md` — chromeless vs theme
 - `funnel-image-specs.md` — dimensioni/ratio per ruolo sezione
 - `section-schema-patterns.md` — pattern schema editabile (setting types, blocks, richtext)
+- `analytics-instrumentation.md` — event catalog Working Suite + pattern strumentazione (OBBLIGATORIO)
 
 ## Troubleshooting
 

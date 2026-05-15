@@ -449,6 +449,20 @@ Al resume di una sessione (`claude --resume <id>`), il transcript precedente con
 
 **Nota collaborativa**: una stessa sessione può essere riaperta da operatori diversi del workspace (RLS workspace-based). Se l'utente che apre adesso non sei "lo stesso" della creazione (es. messaggi sotto altro nome nel transcript), comportati comunque normale: il contesto del lavoro è in transcript, e gli `AskUserQuestion` valgono per chiunque clicchi.
 
+## Strumentazione analytics (OBBLIGATORIO)
+
+Ogni PDP creata da questa skill **deve** essere strumentata per la dashboard Analytics di Working Suite. Il SDK `window.wsa.track(name, payload)` è già installato sul theme degli store registrati in `analytics_sources` — la skill chiama il SDK dai punti giusti del DOM.
+
+**Cosa generare nelle sezioni:**
+
+- Su ogni **CTA principale** della PDP (Aggiungi al carrello, Acquista, Scopri di più, sticky bottom): aggiungi `data-wsa-cta-id="<slug>"` + `data-wsa-cta-position="<hero|mid|closing|sticky-bottom>"` + uno snippet `<script>` inline che emette `cta_click` con `cta_id`/`cta_label`/`cta_position`/`template`. Pattern completo in `references/analytics-instrumentation.md`.
+- Lascia automatici (no codice necessario): `page_view`, `session_entry`, `scroll_depth`, `add_to_cart` (form submit standard `/cart/add`), `begin_checkout`, `purchase`.
+- Nessun evento quiz su PDP (quelli appartengono al funnel quiz — vedi skill funnel).
+
+**Quando applicare:** in Fase 3 (duplicazione + liquidify), per ogni sezione duplicata che contiene CTA principali, aggiungi anche la strumentazione. In Fase 5 (riscrittura testi), se l'operatore aggiunge nuove CTA via theme editor, l'`data-wsa-cta-id` deve essere un `text` setting dello schema così resta editabile.
+
+Reference: `references/analytics-instrumentation.md` (event catalog completo, pattern script, convenzioni naming).
+
 ## References
 
 - `workflow-faithful-rebuild.md` — regola d'oro + tecniche sostituzione + form Katching
@@ -457,6 +471,7 @@ Al resume di una sessione (`claude --resume <id>`), il transcript precedente con
 - `section-naming.md` — convenzioni prefissi
 - `image-specs-per-section.md` — dimensioni/ratio per ruolo sezione
 - `section-schema-patterns.md` — liquidify, setting types, edge case
+- `analytics-instrumentation.md` — event catalog Working Suite + pattern strumentazione (OBBLIGATORIO)
 
 ## Troubleshooting
 
