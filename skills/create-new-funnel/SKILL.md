@@ -90,6 +90,12 @@ Comportamento:
 
 ## Fase 1 — Scelta store
 
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="select-store" />
+```
+
 Mostra all'utente la lista store configurati. Usa `AskUserQuestion` — UNA opzione per ogni store letto da `config/stores.json`, **niente "Altro" / niente onboarding inline**.
 
 > ℹ️ **Quando gira dentro Working Suite** (`$WSA_INTERNAL_KEY` valorizzato), gli store sono quelli configurati dal pannello (`Configurazioni → Store`). Se manca quello che serve, **NON aggiungerlo dalla chat**: chiedi all'operatore di aggiungerlo via dashboard e ricaricare. Il `stores.json` qui è in sola lettura — il wrapper lo riscrive ad ogni init.
@@ -99,6 +105,12 @@ Salva in memoria: `store.name`, `store.shopify_domain`, `store.theme_id`, `store
 ---
 
 ## Fase 2 — Verifica auth + scelta tema
+
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="auth-check" />
+```
 
 > ℹ️ **Sotto Working Suite** il `.env` è **già scritto dal wrapper** con il token Theme Access salvato in `Configurazioni → Store → Credenziali`. **Non chiedere mai il token in chat**: se esiste e ha `SHOPIFY_CLI_THEME_TOKEN` non vuoto, procedi. Se è vuoto → fermati e di': "Manca il token in **Configurazioni → Store**, aggiungilo e ricarica la chat."
 
@@ -124,6 +136,12 @@ Salva in memoria: `store.name`, `store.shopify_domain`, `store.theme_id`, `store
 ---
 
 ## Fase 3 — Brand identity discovery
+
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="brand-discovery" />
+```
 
 Obiettivo: capire palette + tipografia del brand per mantenere il funnel visivamente coerente col resto del sito. Fonte di verità: `references/brand-identity-discovery.md`.
 
@@ -161,6 +179,12 @@ Salva l'oggetto `brand.*` in memoria. Verrà iniettato nelle sezioni in Fase 8.
 
 ## Fase 4 — Scelta tipo di funnel
 
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="funnel-type" />
+```
+
 **PRIMA di creare il template**, devi sapere che tipo di funnel stiamo costruendo. Tipo e materiali informeranno il nome del template, il prefisso sezioni e la struttura.
 
 `AskUserQuestion`: "Che tipo di funnel stiamo creando?"
@@ -180,6 +204,12 @@ Se `other`: chiedi all'utente una descrizione della struttura che ha in mente (n
 ---
 
 ## Fase 5 — Struttura funnel (URL destinazione + competitor)
+
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="funnel-structure" />
+```
 
 **Questa fase serve SOLO a definire la STRUTTURA** del funnel (quante sezioni, in che ordine, con che ruolo). Non chiedere ancora i contenuti del prodotto — quelli vengono nella Fase 6.
 
@@ -235,6 +265,12 @@ Salva la lista finale in `funnel.sections_plan` (array ordinato con `nn`, `role`
 ---
 
 ## Fase 6 — Studio prodotto + angle marketing
+
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="product-angle" />
+```
 
 Questa è la fase **più articolata** del funnel (advertorial in particolare). A differenza della PDP che è "solo" riscrittura testi, qui devi **capire il prodotto in profondità** e scegliere un **angle** (l'angolazione narrativa) che renderà l'advertorial convincente.
 
@@ -343,6 +379,12 @@ Mostra un blocco compatto:
 
 ## Fase 7 — Creazione template funnel
 
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="create-template" />
+```
+
 Ora che conosci tipo + materiali, puoi creare il template con un nome sensato.
 
 ### 7.1 Scelta partenza
@@ -441,6 +483,12 @@ Salva lo slug in `funnel.page_slug`. URL live: `https://<store.shopify_domain>/p
 ---
 
 ## Fase 8 — Costruzione sezioni
+
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="build-sections" />
+```
 
 ### 8.0 Scelta modalità di lavoro (obbligatoria)
 
@@ -589,6 +637,12 @@ Prima di ogni push: conferma a te stesso di non aver aperto/modificato per sbagl
 
 ## Fase 9 — Guida immagini
 
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="images-guide" />
+```
+
 Le sezioni sono tutte editabili: ogni immagine è un `image_picker` nello schema. L'utente le carica **dal theme editor**, non via URL CDN incollato in chat. Fonte: `references/funnel-image-specs.md` (specs) + `references/section-schema-patterns.md` (pattern editor).
 
 Per ogni sezione con uno o più `image_picker`:
@@ -658,20 +712,20 @@ Quando tutto ✓: dichiara il funnel pronto. Suggerisci:
 
 ## Fase 10 — Link su Shopify (solo se gira dentro Working Suite)
 
+🚨 **PRIMA AZIONE in questa fase** (solo se WSA_INTERNAL_KEY valorizzato), prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="link-shopify" />
+```
+
 Vale **solo** se la skill gira dentro Working Suite. Lo capisci controllando l'env `WSA_INTERNAL_KEY`:
 
 ```bash
 test -n "$WSA_INTERNAL_KEY" && echo "WSA_ACTIVE" || echo "WSA_INACTIVE"
 ```
 
-Se `WSA_INACTIVE` → salta.
-Se `WSA_ACTIVE` → emetti il tag e procedi.
-
-### 1. Segnala l'inizio
-
-```
-<wsa-phase id="link-shopify" />
-```
+Se `WSA_INACTIVE` → salta tutta la fase.
+Se `WSA_ACTIVE` → procedi.
 
 ### 2. Chiedi all'utente l'URL della page funnel live
 

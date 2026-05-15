@@ -92,7 +92,15 @@ Comportamento:
 
 ## Fase 1 — Scelta store
 
-Mostra all'utente la lista degli store configurati con `AskUserQuestion` — UNA opzione per ogni store letto da `config/stores.json`, niente "Altro" / niente onboarding inline.
+🚨 **PRIMA AZIONE in questa fase** (zero eccezioni, non è opzionale): scrivi questa singola riga nel chat come PRIMA cosa, prima di qualsiasi tool call o testo:
+
+```
+<wsa-phase id="select-store" />
+```
+
+Senza questa riga la roadmap nella sidebar Working Suite resta indietro e l'operatore non sa che sei avanzato. Emetti il tag SEMPRE, anche se la fase si chiude in 2 secondi.
+
+Poi prosegui: mostra all'utente la lista degli store configurati con `AskUserQuestion` — UNA opzione per ogni store letto da `config/stores.json`, niente "Altro" / niente onboarding inline.
 
 > ℹ️ **Quando gira dentro Working Suite** (`$WSA_INTERNAL_KEY` valorizzato), gli store sono sempre quelli che l'operatore ha già configurato dal pannello (`Configurazioni → Store`). Se manca quello che serve, **NON aggiungerlo dalla chat**: chiedi all'utente di aggiungerlo via dashboard. Esempio risposta:
 >
@@ -112,6 +120,12 @@ Salva in memoria i campi dello store scelto:
 ---
 
 ## Fase 2 — Verifica auth + scelta tema
+
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="auth-check" />
+```
 
 > ℹ️ **Sotto Working Suite** il file `store.env_path` è **già generato** dal wrapper con il token Theme Access che l'operatore ha salvato in `Configurazioni → Store → Credenziali`. **Non chiedere mai il token in chat**: se il file esiste ed è non-vuoto, procedi direttamente al `theme list`. Se il file esiste ma è vuoto/commentato, fermati e di': "Manca il token Theme Access per questo store. Aggiungilo da **Configurazioni → Store**, poi ricarica la chat." Non avviare alcun onboarding inline del token.
 >
@@ -157,6 +171,12 @@ Salva in memoria i campi dello store scelto:
 ---
 
 ## Fase 3 — Duplicazione template
+
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="duplicate-template" />
+```
 
 ### 3.1 Nome nuovo template
 
@@ -281,6 +301,12 @@ Salva lo slug in memoria: `product.slug`. URL live: `https://<store.shopify_doma
 
 ## Fase 4 — Raccolta materiali
 
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="research-materials" />
+```
+
 Chiedi all'utente di fornire (puoi presentare come checklist):
 
 1. **PDP competitor**: 1-3 URL o screenshot di PDP di competitor dello stesso angolo/categoria. Servono per capire il linguaggio, i claim, la struttura.
@@ -344,6 +370,12 @@ Chiedi: "Materiali completi, procedo con la scrittura testi sezione-per-sezione?
 ---
 
 ## Fase 5 — Riscrittura testi per il nuovo prodotto
+
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="rewrite-content" />
+```
 
 **Contesto importante**: le sezioni duplicate sono a questo punto **tutte editabili** (Fase 3.5 ha liquidificato quelle legacy). I testi del prodotto base (es. berberina) vivono nei `default` dello schema di ogni sezione. Il tuo compito in questa fase è **riscrivere i testi del nuovo prodotto** partendo dalla research raccolta in Fase 4, **modificando i `default` nello schema** — NON il markup HTML. Markup/CSS/JS/struttura restano identici.
 
@@ -473,6 +505,12 @@ L'utente può cambiare modalità in corsa dicendo "passa a batch" o "torna a sez
 
 ## Fase 6 — Guida immagini
 
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="images-guide" />
+```
+
 Le sezioni sono editabili: le immagini sono `image_picker` nello schema. L'utente le carica **direttamente dal theme editor**, nessun replace di URL CDN nei file. Fonte: `references/image-specs-per-section.md` (specs) + `references/section-schema-patterns.md` (pattern editor).
 
 Per ogni sezione che contiene immagini:
@@ -496,6 +534,12 @@ Per ogni sezione che contiene immagini:
 
 ## Fase 7 — Verifica finale
 
+🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="final-check" />
+```
+
 1. Mostra la checklist finale:
    - [ ] Tutte le sezioni popolate con testi validati
    - [ ] Tutte le immagini caricate e renderizzate correttamente
@@ -515,20 +559,20 @@ Per ogni sezione che contiene immagini:
 
 ## Fase 8 — Link su Shopify (solo se gira dentro Working Suite)
 
+🚨 **PRIMA AZIONE in questa fase** (solo se WSA_INTERNAL_KEY valorizzato), prima di qualsiasi altra cosa:
+
+```
+<wsa-phase id="link-shopify" />
+```
+
 Questa fase **vale solo se la skill è invocata dal Builder di Working Suite**. Lo capisci da una sola condizione: la variabile d'ambiente `WSA_INTERNAL_KEY` è valorizzata. Se è vuota, **salta interamente questa fase** (non avere paura, in Working Suite il wrapper la inietta automaticamente).
 
 ```bash
 test -n "$WSA_INTERNAL_KEY" && echo "WSA_ACTIVE" || echo "WSA_INACTIVE"
 ```
 
-Se `WSA_ACTIVE` → emetti il tag e procedi.
+Se `WSA_ACTIVE` → procedi.
 Se `WSA_INACTIVE` → finita la skill, niente da fare qui.
-
-### 1. Segnala l'inizio della fase
-
-```
-<wsa-phase id="link-shopify" />
-```
 
 ### 2. Chiedi all'utente l'URL della PDP live
 
