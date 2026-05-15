@@ -356,6 +356,54 @@ Risposta:
 
 ---
 
+## Modalità manutenzione (post-launch)
+
+Una sessione PDP non si chiude mai. Dopo che la Fase 8 ha collegato la PDP su Shopify, la sessione resta **aperta a tempo indeterminato** per fix successivi: typo nei testi, sostituzione immagini, aggiornamento prezzi/varianti, refresh stagionali, A/B testing su una sezione, ecc.
+
+### Detection (deterministica)
+
+Al resume di una sessione (`claude --resume <id>`), il transcript precedente contiene già le fasi che hai attraversato. Per capire in che stato sei:
+
+- Cerca nel transcript il tag `<wsa-phase id="link-shopify" />` seguito dalla conferma del curl all'endpoint `/link-shopify` (response `ok: true`).
+- Se presente → **sei in modalità manutenzione**. Non rifare le fasi 1-7.
+- Se assente → continui dal punto dove la roadmap si era fermata (modalità normale).
+
+### Comportamento in modalità manutenzione
+
+**Primo turno dopo il resume** (il primo messaggio dell'operatore in modalità manutenzione):
+
+1. Emetti il tag fase corrente per la roadmap (riusa l'ultima fase attraversata, di solito `link-shopify`) — non aggiungere fasi nuove.
+2. Saluta con un riassunto breve e mirato:
+   ```
+   PDP <product.slug> pronta e collegata. Cosa vuoi modificare?
+   ```
+3. `AskUserQuestion` con macro-categorie:
+   - **Testi** (cambio copy in una o più sezioni)
+   - **Immagini** (sostituire/aggiungere/togliere immagini)
+   - **Layout/struttura** (riordinare sezioni, aggiungerne, toglierne)
+   - **Settings prodotto** (prezzo, varianti, inventory — punto a Shopify Admin perché non sono editabili dal tema)
+   - **Altro** (problema specifico)
+
+**Per ogni fix scelto:**
+
+1. Chiedi all'operatore **cosa esattamente** vuole cambiare (e in quale sezione se non chiaro).
+2. Se non sai a quale file appartiene la modifica, fai un grep mirato per identificarla — NON rifare la lista template/sezioni come in Fase 3.
+3. Applica il fix puntuale: `Edit` o `python3 heredoc` sul singolo file.
+4. **Push selettivo** del solo file modificato (vedi convenzioni). Non pullare il tema intero a meno che l'operatore segnali divergenze sospette.
+5. Chiedi all'operatore di verificare sull'URL live.
+6. Quando confermato: `AskUserQuestion` "Altre modifiche?" con opzioni:
+   - **Sì, ne ho un'altra** → torna alla scelta macro-categoria
+   - **No, è tutto** → conferma chiusura sessione di manutenzione e basta
+
+**Cosa NON fare in modalità manutenzione:**
+
+- Non ripercorrere le fasi 1-7 (store già scelto, tema già selezionato, template già duplicato, ecc.). Tutti questi dati sono già in memoria via `--resume`.
+- Non rifare il `theme pull` se non c'è una buona ragione (divergenza segnalata, file sembra obsoleto).
+- Non riproporre la modalità sezione-per-sezione vs batch — per un fix singolo si fa direttamente puntuale.
+- Non emettere nuovi tag `<wsa-phase>` per fasi che hai già completato — confonderebbe la roadmap.
+
+**Nota collaborativa**: una stessa sessione può essere riaperta da operatori diversi del workspace (RLS workspace-based). Se l'utente che apre adesso non sei "lo stesso" della creazione (es. messaggi sotto altro nome nel transcript), comportati comunque normale: il contesto del lavoro è in transcript, e gli `AskUserQuestion` valgono per chiunque clicchi.
+
 ## References
 
 - `workflow-faithful-rebuild.md` — regola d'oro + tecniche sostituzione + form Katching

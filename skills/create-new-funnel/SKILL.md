@@ -544,6 +544,51 @@ Conferma all'utente, chiudi.
 
 ---
 
+## Modalità manutenzione (post-launch)
+
+Una sessione funnel non si chiude. Dopo che la Fase 10 ha collegato la page su Shopify, la sessione resta **aperta a tempo indeterminato** per fix successivi: typo, sostituzione immagini, swap CTA, refresh stagionali, ottimizzazioni A/B su una sezione.
+
+### Detection (deterministica)
+
+Al resume (`claude --resume <id>`):
+
+- Se il transcript contiene `<wsa-phase id="link-shopify" />` + conferma curl `ok: true` → **modalità manutenzione**.
+- Altrimenti → modalità normale, continui dalla fase non chiusa.
+
+### Comportamento in modalità manutenzione
+
+**Primo turno dopo resume:**
+
+1. Emetti il tag fase corrente (riusa `link-shopify`, non aggiungere fasi nuove).
+2. Saluta breve:
+   ```
+   Funnel <funnel.page_slug> pronto e collegato. Cosa vuoi modificare?
+   ```
+3. `AskUserQuestion` con macro-categorie:
+   - **Testi** (copy in una o più sezioni)
+   - **Immagini**
+   - **Layout/struttura** (riordino sezioni, aggiungere/togliere)
+   - **CTA** (cambio destinazione, copy bottone, riposizionamento)
+   - **Altro**
+
+**Per ogni fix:**
+
+1. Chiedi all'operatore cosa esattamente cambiare (e in quale sezione se non chiaro).
+2. `grep` mirato per localizzare la modifica — non rifare l'inventario sezioni come in Fase 8.
+3. `Edit` o `python3 heredoc` puntuale sul singolo file.
+4. Push selettivo (solo il file toccato).
+5. Verifica URL live.
+6. `AskUserQuestion` "Altre modifiche?" → loop o chiudi.
+
+**Cosa NON fare:**
+
+- Non ripercorrere fasi 1-9 (brand, tipo funnel, struttura, prodotto/angle, template, sezioni — tutto già in memoria via `--resume`).
+- Non rifare `theme pull` se non c'è una ragione concreta.
+- Non riproporre modalità A/B/C — per un fix singolo si fa puntuale.
+- Non emettere nuovi tag `<wsa-phase>` per fasi già fatte.
+
+**Nota collaborativa**: la sessione è workspace-shared. Se chi apre adesso non è il creatore originale, comportati comunque normale: il contesto è in transcript.
+
 ## References
 
 - `auth-pattern.md` — `.env`, Theme Access token, modalità manuale
