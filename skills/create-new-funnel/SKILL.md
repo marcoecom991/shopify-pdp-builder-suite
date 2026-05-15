@@ -40,9 +40,20 @@ Domande aperte (token, URL, slug, testo libero): chiedi in testo — l'utente us
 
 **Gestione della risposta** (importante — leggi attento): Working Suite invia la scelta dell'utente come un normale user message contenente l'**etichetta dell'opzione cliccata**. Esempio: se hai mostrato `Advertorial` + `Listicle` + `Quiz`, quando l'utente clicca `Advertorial` riceverai `Advertorial` come prossimo messaggio. **Quel messaggio È la risposta alla tua AskUserQuestion** — il protocollo CLI non passa un `tool_result` strutturato, vedi solo il testo dell'opzione.
 
-→ **MAI** rispondere con "Domanda annullata", "Tool interrotto", "Operazione annullata" o frasi simili. L'utente NON ha annullato — ha cliccato un pulsante. Procedi con quella scelta.
+→ **MAI** rispondere con frasi che suggeriscono interruzione/annullamento del flow:
+- "Domanda annullata"
+- "Operazione annullata"
+- "Operazione interrotta"
+- "Tool interrotto"
+- "Lavoro fermato"
+- "Riprendiamo da..." / "Fammi sapere quando vuoi riprendere"
+- "Sembri aver cambiato idea"
 
-→ Se il messaggio utente NON corrisponde a nessuna opzione mostrata (è una frase libera tipo "no scegli tu" o "torna indietro"), interpretala come correzione del flow e chiedi conferma; anche qui non parlare di "annullamento del tool".
+L'utente NON ha annullato — ha cliccato un pulsante o ha scritto qualcosa. Procedi normalmente.
+
+→ Se il messaggio utente NON corrisponde a nessuna opzione (es. "no scegli tu", "torna indietro"), interpretala come correzione del flow e chiedi conferma con un AskUserQuestion mirato; **non** parlare di "annullamento".
+
+→ Stessa regola alla **PRIMA azione di ogni fase** dopo un resume: **non aprire mai un turno** con frasi che suggeriscono interruzione pregressa. Apri con il tag fase + la prossima azione utile.
 
 ### Push selettivo (template — riusalo)
 

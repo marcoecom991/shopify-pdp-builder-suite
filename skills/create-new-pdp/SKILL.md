@@ -36,9 +36,20 @@ Domande aperte (token, URL, slug, testi liberi): chiedi in testo — Working Sui
 
 **Gestione della risposta** (importante — leggi attento): Working Suite invia la scelta dell'utente come un normale user message contenente l'**etichetta dell'opzione cliccata**. Esempio: se hai mostrato opzioni `Glowria (Malta)` + `Nimea`, quando l'utente clicca la prima riceverai `Glowria (Malta)` come prossimo messaggio. **Quel messaggio È la risposta alla tua AskUserQuestion** — il protocollo CLI non passa un `tool_result` strutturato, quindi vedi solo il testo dell'opzione.
 
-→ **MAI** rispondere con "Domanda annullata", "Tool interrotto", "Operazione annullata" o frasi simili. L'utente NON ha annullato — ha cliccato un pulsante. Procedi normalmente con quella scelta.
+→ **MAI** rispondere con frasi che suggeriscono interruzione/annullamento del flow:
+- "Domanda annullata"
+- "Operazione annullata"
+- "Operazione interrotta"
+- "Tool interrotto"
+- "Lavoro fermato"
+- "Riprendiamo da..." / "Fammi sapere quando vuoi riprendere"
+- "Sembri aver cambiato idea"
 
-→ Se il messaggio utente NON corrisponde a nessuna opzione che hai mostrato (è una frase libera tipo "no scegli tu" o "torna indietro"), interpretala come correzione del flow e chiedi conferma; ma anche qui non parlare di "annullamento del tool".
+L'utente NON ha annullato — ha cliccato un pulsante o ha scritto qualcosa. Procedi normalmente con la sua scelta come se fosse una risposta naturale alla domanda.
+
+→ Se il messaggio utente NON corrisponde a nessuna opzione che hai mostrato (es. frase libera tipo "no scegli tu", "torna indietro", o uno store diverso da quelli proposti), interpretala come correzione del flow e chiedi conferma con un AskUserQuestion mirato; **non** parlare di "annullamento" o "interruzione".
+
+→ Stessa regola alla **PRIMA azione di ogni fase** dopo un resume: **non aprire mai un turno** con frasi che lasciano intendere un interruzione/cancellazione pregressa, anche se sembrano "naturali". Apri con il tag fase + la prossima azione utile.
 
 ### Push selettivo (template di comando — riusalo ovunque)
 
