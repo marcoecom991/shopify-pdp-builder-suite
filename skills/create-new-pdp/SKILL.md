@@ -5,584 +5,336 @@ description: Crea una nuova PDP Shopify da zero. Guida l'utente attraverso 7 fas
 
 # /create-new-pdp — Orchestrator
 
-Sei una guida passo-passo per creare una PDP Shopify da zero. Segui le 7 fasi **in sequenza**. Non saltare fasi. Usa `AskUserQuestion` (o in mancanza chiedi in chiaro) come gate tra una fase e la successiva per confermare progressi con l'utente.
+Guida passo-passo per creare una PDP Shopify da zero. Segui le 7 fasi **in sequenza**, mai saltare. `AskUserQuestion` come gate fra una fase e la successiva.
 
-## Phase signaling (Working Suite)
+## Convenzioni (valide per TUTTE le fasi)
 
-Working Suite mostra una mini-roadmap nella sidebar del Builder che si aggiorna in base ai segnali che mandi qui. **Appena entri in una fase, scrivi UNA RIGA isolata** con il tag della fase, poi vai avanti come al solito. Niente commenti, niente codice fence, niente prefisso: la linea deve essere esattamente quella e nient'altro.
+### Phase tag (priorità massima)
 
-| Fase | Tag da scrivere |
-|------|-----------------|
-| Fase 1 — Scelta store | `<wsa-phase id="select-store" />` |
-| Fase 2 — Auth + tema | `<wsa-phase id="auth-check" />` |
-| Fase 3 — Duplicazione template | `<wsa-phase id="duplicate-template" />` |
-| Fase 4 — Raccolta materiali | `<wsa-phase id="research-materials" />` |
-| Fase 5 — Riscrittura testi | `<wsa-phase id="rewrite-content" />` |
-| Fase 6 — Guida immagini | `<wsa-phase id="images-guide" />` |
-| Fase 7 — Verifica finale | `<wsa-phase id="final-check" />` |
-| Fase 8 — Link su Shopify (post-creazione) | `<wsa-phase id="link-shopify" />` |
+Ogni fase deve aprirsi con una riga isolata `<wsa-phase id="<id>" />` come **PRIMISSIMA cosa** della tua risposta — niente commenti, niente code-fence, niente prosa prima. Senza il tag, la roadmap nella sidebar Working Suite resta indietro e l'operatore non sa che sei avanzato.
 
-Esempio inizio Fase 1:
-```
-<wsa-phase id="select-store" />
+| Fase                                        | Tag                                       |
+| ------------------------------------------- | ----------------------------------------- |
+| 1 — Scelta store                            | `<wsa-phase id="select-store" />`         |
+| 2 — Auth + tema                             | `<wsa-phase id="auth-check" />`           |
+| 3 — Duplicazione template                   | `<wsa-phase id="duplicate-template" />`   |
+| 4 — Raccolta materiali                      | `<wsa-phase id="research-materials" />`   |
+| 5 — Riscrittura testi                       | `<wsa-phase id="rewrite-content" />`      |
+| 6 — Guida immagini                          | `<wsa-phase id="images-guide" />`         |
+| 7 — Verifica finale                         | `<wsa-phase id="final-check" />`          |
+| 8 — Link su Shopify (solo sotto WSA)        | `<wsa-phase id="link-shopify" />`         |
 
-Ciao 👋 vediamo su quale store lavoriamo oggi...
-```
+### AskUserQuestion
 
-Il tag viene processato e nascosto dall'UI; non lo vede l'utente, vede solo il testo dopo.
+Per domande con **opzioni discrete** (Sì/No, scelte di lista, conferme): usa SEMPRE il tool `AskUserQuestion`. Working Suite lo renderizza come pannello cliccabile sotto la chat.
 
-## Question conventions (Working Suite)
+**Non duplicare la domanda nel testo prima del tool** — l'utente la vede già nel pannello. Limita la prosa a 1-2 righe di contesto reale se serve.
 
-Quando devi chiedere all'utente di scegliere fra opzioni discrete (incluso `Sì/No`, `Conferma/Annulla`, qualsiasi domanda chiusa) **usa SEMPRE il tool `AskUserQuestion`**, mai testo libero. Working Suite renderizza l'`AskUserQuestion` come un pannello cliccabile sotto la chat: senza pillole l'utente deve digitare la risposta a mano, persa la metà del valore del flusso strutturato.
+Per "una sola opzione disponibile e serve conferma": `AskUserQuestion` con `Procedi con <nome>` + `Indietro`. Per "una sola opzione e niente da confermare": vai avanti senza chiedere.
 
-**Non duplicare la domanda nel testo prima del tool.** Working Suite mostra GIÀ la domanda + opzioni nel pannello in fondo. Se la scrivi anche in prosa nella bubble, l'utente la vede due volte e occupa spazio inutile.
+Domande aperte (token, URL, slug, testi liberi): chiedi in testo — Working Suite mostra l'input testuale in basso.
 
-- ❌ Sbagliato:
-  > "Su quale store vogliamo lavorare oggi?
-  > [poi chiamata AskUserQuestion con la stessa domanda]"
-
-- ✅ Giusto:
-  > [contesto minimo se serve, p.es. "Trovati 2 store configurati"]
-  > [poi chiamata AskUserQuestion]
-
-Per "una sola opzione disponibile" + serve conferma esplicita: usa comunque AskUserQuestion con due opzioni `Procedi con <nome>` e `Indietro`, niente testo extra. Per "una sola opzione e l'utente non deve confermare" (es. una decisione che la skill può prendere da sola in modo non-ambiguo): vai avanti senza chiedere.
-
-Per le domande aperte/numeriche (es. "incolla il token", "scrivi il nome del prodotto", "dammi l'URL competitor") va bene chiedere in testo — quelle non hanno opzioni discrete e Working Suite renderà l'input testuale nella barra in basso.
-
-## Principio generale
-
-- **🔒 Il template base e le sue sezioni NON si toccano MAI.** Il template base (es. `product.berberina-pills.json`) e le sue sezioni (es. `cboe-pdp-05.liquid`) appartengono a un prodotto live diverso. Ogni modifica a quei file rompe un prodotto esistente. **Si duplicano sempre in file nuovi con prefisso nuovo**, e TUTTE le modifiche avvengono solo sui duplicati. Mai `Edit` o `Write` sui file base.
-- **Non riscrivere il markup esistente.** Quando popoli le sezioni duplicate con i contenuti del nuovo prodotto, preservi layout, CSS, JS della sezione di partenza. Modifichi solo testi e URL immagini. Fonte di verità: `references/workflow-faithful-rebuild.md`.
-- **Ogni sezione duplicata deve finire editabile dal theme editor.** Durante la duplicazione (Fase 3), ogni file copiato viene ispezionato: se è già editabile (schema con `settings`/`blocks` che coprono testi e immagini) resta com'è; se è hardcoded (markup legacy, tipo GemPages detached) la skill lo **liquidifica automaticamente** — estrae testi/immagini/CTA nel markup del duplicato e li sposta nello schema come `settings`/`blocks` con `default`, sostituendo nel Liquid con `{{ section.settings.* }}`. Fonte: `references/section-schema-patterns.md`. **La liquidify tocca solo il duplicato, mai l'originale.**
-- **Un push per volta, sempre selettivo.** Mai `theme push` senza `--only`. Il `--only` include SOLO i file duplicati (nuovo prefisso). Fonte di verità: `references/selective-push.md`.
-- **Conferma con l'utente prima di ogni azione distruttiva o irreversibile** (creazione file, push live, rinomina).
-
-## Lettura dello stato iniziale
-
-All'avvio devi trovare il file `config/stores.json` del plugin.
-
-**REGOLA ASSOLUTA** — senza eccezioni, senza interpretazione:
-
-1. **NON creare MAI nessun file dentro `~/.claude/skills/`.** Quella cartella contiene solo i symlink di sviluppo. Se stai per scrivere un file il cui path contiene `.claude/skills/`, fermati subito: è sbagliato.
-2. **`stores.json` vive SOLO nella cartella del plugin**, cioè `<plugin-root>/config/stores.json`. Mai altrove.
-3. **`stores.example.json` esiste già** nel repo — non va mai creato né copiato dalla skill.
-
-**Procedura deterministica** (esegui nell'ordine, senza saltare step):
+### Push selettivo (template di comando — riusalo ovunque)
 
 ```bash
-# Step A — prova path canonico
-test -f "$HOME/Desktop/shopify-pdp-builder/config/stores.json" && echo "FOUND:$HOME/Desktop/shopify-pdp-builder/config/stores.json"
-
-# Step B — risolvi via symlink della skill (se A non ha trovato nulla)
-PLUGIN_ROOT=$(dirname "$(dirname "$(readlink "$HOME/.claude/skills/create-new-pdp")")")
-test -f "$PLUGIN_ROOT/config/stores.json" && echo "FOUND:$PLUGIN_ROOT/config/stores.json"
-
-# Step C — prova il path plugin standard di Claude Code
-test -f "$HOME/.claude/plugins/shopify-pdp-builder/config/stores.json" && echo "FOUND:$HOME/.claude/plugins/shopify-pdp-builder/config/stores.json"
+cd "$STORE_WORKDIR"
+set -a; source "$STORE_ENV"; set +a
+npx @shopify/cli@latest theme push \
+  --theme "$STORE_THEME_ID" --nodelete --allow-live \
+  --only "<file1>" --only "<file2>" ...
 ```
 
-Comportamento:
+Mai `theme push` senza `--only`. Il `--only` include SOLO i file del nuovo prefisso (template + sezioni duplicate).
 
-- Se **uno qualsiasi** degli step stampa `FOUND:<path>` → usa quel path con `Read` per leggere `stores.json` e procedi con la Fase 1.
-- Se **tutti e tre** falliscono → **FERMATI**. Non scrivere nulla. Chiedi all'utente in chiaro: "Non trovo `config/stores.json`. Dimmi il path assoluto del plugin `shopify-pdp-builder` sul tuo disco." Attendi risposta, poi ricontrolla.
+### Regole di intoccabilità
 
-**Mai** usare `Write` o `Edit` per creare `stores.json` o `stores.example.json`. Se manca, è un problema di setup utente, non un file da generare dalla skill.
+1. **Mai modificare il template base o le sue sezioni.** Il template base (es. `product.berberina-pills.json`) e le sue sezioni (es. `cboe-pdp-05.liquid`) appartengono a un prodotto live diverso. Si duplicano in file nuovi con prefisso nuovo; ogni `Edit`/`Write` avviene sui duplicati.
+2. **Mai riscrivere il markup esistente** durante la riscrittura testi. Layout, CSS, JS si preservano; modifichi solo i `default` dei `{% schema %}`. Fonte: `references/workflow-faithful-rebuild.md`.
+3. **Ogni sezione duplicata deve essere editabile dal theme editor.** Se è hardcoded (markup legacy), liquidify automaticamente — vedi Fase 3.5. Pattern: `references/section-schema-patterns.md`.
+4. **Mai scrivere dentro `~/.claude/`.** Il cwd corrente è il plugin skin: tutto quello che modifichi vive lì.
+5. **Conferma con l'utente prima di ogni azione irreversibile** (creazione file, push live, rinomina).
+
+## Setup ambient (Working Suite)
+
+Sotto WSA — riconoscibile da `$WSA_INTERNAL_KEY` valorizzato — il wrapper ti consegna l'ambiente pronto:
+
+- **cwd**: `~/Desktop/shopify-pdp-builder/` (plugin skin per-workspace).
+- **`config/stores.json`**: SEMPRE in `./config/stores.json` (relativo al cwd). Read diretto, niente fallback.
+- **`.env` di ogni store**: già scritto dal wrapper con il Theme Access token salvato dall'operatore in **Configurazioni → Store → Credenziali**. **Non chiedere mai il token in chat.**
+- **Stores mancanti**: lo `stores.json` è in **sola lettura** sotto WSA (rigenerato a ogni init). Se serve uno store non in lista, rimanda l'operatore a Configurazioni → Store nella dashboard, poi ricaricare la chat.
+
+In modalità manuale (claude lanciato direttamente, no `$WSA_INTERNAL_KEY`): puoi chiedere il token in chat e scrivere `.env` inline. Pattern + sezione "Come generare un nuovo Theme Access token" in `references/auth-pattern.md`.
 
 ---
 
 ## Fase 1 — Scelta store
 
-🚨 **PRIMA AZIONE in questa fase** (zero eccezioni, non è opzionale): scrivi questa singola riga nel chat come PRIMA cosa, prima di qualsiasi tool call o testo:
+🏷️ Prima riga: `<wsa-phase id="select-store" />`
 
-```
-<wsa-phase id="select-store" />
-```
+`Read config/stores.json` (path relativo al cwd). Mostra la lista all'utente via `AskUserQuestion` — una opzione per store, niente "Altro" sotto WSA.
 
-Senza questa riga la roadmap nella sidebar Working Suite resta indietro e l'operatore non sa che sei avanzato. Emetti il tag SEMPRE, anche se la fase si chiude in 2 secondi.
-
-Poi prosegui: mostra all'utente la lista degli store configurati con `AskUserQuestion` — UNA opzione per ogni store letto da `config/stores.json`, niente "Altro" / niente onboarding inline.
-
-> ℹ️ **Quando gira dentro Working Suite** (`$WSA_INTERNAL_KEY` valorizzato), gli store sono sempre quelli che l'operatore ha già configurato dal pannello (`Configurazioni → Store`). Se manca quello che serve, **NON aggiungerlo dalla chat**: chiedi all'utente di aggiungerlo via dashboard. Esempio risposta:
->
-> > "Lo store che cerchi non risulta in `config/stores.json`. Aggiungilo da **Configurazioni → Store** nella dashboard, poi torna qui e ricarica la chat (`Cmd+Shift+R`). Ti aspetto."
->
-> Sotto Working Suite il file `stores.json` viene **generato dal wrapper a ogni init** — qualsiasi modifica manuale del file viene sovrascritta. Quindi è un punto in sola lettura per la skill.
-
-In modalità manuale (skill lanciata direttamente da `claude` sul Mac, niente `$WSA_INTERNAL_KEY`) puoi continuare a offrire "Altro" per onboarding inline, ma è uno scenario residuo: la dashboard è la via primaria.
-
-Salva in memoria i campi dello store scelto:
-- `store.name`
-- `store.shopify_domain`
-- `store.theme_id`
-- `store.workdir_path`
-- `store.env_path`
+Salva i campi dello store scelto in memoria: `store.name`, `store.shopify_domain`, `store.theme_id`, `store.workdir_path`, `store.env_path`.
 
 ---
 
 ## Fase 2 — Verifica auth + scelta tema
 
-🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+🏷️ Prima riga: `<wsa-phase id="auth-check" />`
 
-```
-<wsa-phase id="auth-check" />
-```
-
-> ℹ️ **Sotto Working Suite** il file `store.env_path` è **già generato** dal wrapper con il token Theme Access che l'operatore ha salvato in `Configurazioni → Store → Credenziali`. **Non chiedere mai il token in chat**: se il file esiste ed è non-vuoto, procedi direttamente al `theme list`. Se il file esiste ma è vuoto/commentato, fermati e di': "Manca il token Theme Access per questo store. Aggiungilo da **Configurazioni → Store**, poi ricarica la chat." Non avviare alcun onboarding inline del token.
->
-> In modalità manuale (Mac, niente wrapper) puoi continuare a chiedere il token come prima.
-
-1. Controlla che `store.env_path` esista e contenga `SHOPIFY_CLI_THEME_TOKEN=` non vuoto. Se NO **in modalità Working Suite** → fermati come spiegato sopra. Se NO **in modalità manuale**:
-   - Spiega all'utente cosa serve (token Theme Access). Fonte: `references/auth-pattern.md`, sezione "Come generare un nuovo Theme Access token".
-   - Guidalo a creare il file: chiedigli di incollare il token, poi scrivi `store.env_path` con:
-     ```
-     SHOPIFY_CLI_THEME_TOKEN=<token-incollato>
-     SHOPIFY_FLAG_STORE=<store.shopify_domain>
-     ```
-2. Verifica la connessione elencando i temi dello store:
+1. Verifica che `store.env_path` esista e contenga `SHOPIFY_CLI_THEME_TOKEN=` non vuoto. Se vuoto sotto WSA: di' all'utente di aggiungere il token in Configurazioni → Store e ricaricare. Stop.
+2. Elenca i temi:
    ```bash
    cd "<store.workdir_path>"
    set -a; source "<store.env_path>"; set +a
    npx @shopify/cli@latest theme list --no-color
    ```
-3. Se l'output mostra errori di auth (`401`, `Invalid API key`, `Unauthorized`): il token è scaduto. Chiedi all'utente di rigenerarlo e aggiornare il `.env`. Rilancia il test.
-
-4. **Mostra all'utente la lista temi parsata** in formato leggibile, evidenziando il live pubblicato:
+   Se l'output mostra `401` / `Invalid API key`: token scaduto. Rimanda l'utente a rigenerarlo.
+3. Mostra i temi parsati con il flag `[live]` evidenziato:
    ```
-   Temi attivi su <store.name>:
-     • [live]     <Nome tema>  (id: <ID>)
-     • [unpublished] <Nome tema>  (id: <ID>)
-     • [development] <Nome tema>  (id: <ID>)
+   • [live] <Nome>  (id: <ID>)
+   • [unpublished] <Nome>  (id: <ID>)
    ```
-
-5. Usa `AskUserQuestion` per chiedere **su quale tema operare**:
-   - Default proposto: il tema `[live]` (o quello in `store.theme_id` se presente in `config/stores.json`).
-   - Opzioni: una per ogni tema elencato.
-   - L'utente può scegliere anche un tema unpublished/development per testare in sicurezza.
-6. Salva la scelta in `store.theme_id` (sovrascrive il valore di default del config per questa sessione) e `store.theme_name`.
-
-7. **Pull fresco del tema scelto**, così le duplicazioni partono da file allineati al remoto (e il template base che modificheremmo per sbaglio non esiste solo in locale vecchio):
+4. `AskUserQuestion`: tema su cui operare? Default proposto: `[live]` (o `store.theme_id` da config). Una opzione per tema.
+5. Salva la scelta in `store.theme_id` + `store.theme_name`.
+6. **Pull fresco del tema scelto** (chiedi conferma prima — il pull sovrascrive file locali non pushati):
    ```bash
    cd "<store.workdir_path>"
    set -a; source "<store.env_path>"; set +a
    npx @shopify/cli@latest theme pull --theme <store.theme_id> --nodelete
    ```
-   Conferma all'utente prima di lanciarlo (il pull sovrascrive file locali non pushati).
 
 ---
 
 ## Fase 3 — Duplicazione template
 
-🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
-
-```
-<wsa-phase id="duplicate-template" />
-```
+🏷️ Prima riga: `<wsa-phase id="duplicate-template" />`
 
 ### 3.1 Nome nuovo template
 
-Con `AskUserQuestion`: "Che nome vuoi dare al nuovo template PDP?"
-- Valida: kebab-case, solo `[a-z0-9-]`, niente spazi.
-- Esempi: `crema-borse-occhiaie-pdp`, `siero-vitamina-c-pdp`, `nuovo-prodotto-pdp`.
-- Verifica che `<store.workdir_path>/templates/product.<nome>.json` NON esista già. Se esiste: chiedi conferma sovrascrittura o nome diverso.
+`AskUserQuestion`: "Che nome vuoi dare al nuovo template PDP?"
 
-### 3.2 Scelta template base
+Vincoli: kebab-case, solo `[a-z0-9-]`, esempi `crema-borse-occhiaie-pdp`, `siero-vitamina-c-pdp`. Verifica che `templates/product.<nome>.json` non esista già.
 
-Elenca i `product.*.json` presenti in `<store.workdir_path>/templates/`:
+### 3.2 Template base
+
 ```bash
 ls "<store.workdir_path>/templates/" | grep '^product\..*\.json$'
 ```
 
-Con `AskUserQuestion`: "Da quale template vuoi partire?"
-- Mostra i nomi leggibili (es. `berberina-pills`, `crema-borse-occhiaie-pdp`).
-- Fallback: se c'è un solo `product.*.json` oltre al default `product.json`, assumi quello.
+`AskUserQuestion` con una opzione per template trovato. Se ne esiste uno solo oltre al default `product.json`, assumi quello senza chiedere.
 
-### 3.3 Prefisso nuove sezioni
+### 3.3 Prefisso sezioni
 
-Genera un prefisso di default dalle iniziali del nome template (vedi `references/section-naming.md`):
+Genera default dalle iniziali (vedi `references/section-naming.md`):
 - `crema-borse-occhiaie-pdp` → `cboe`
 - `siero-vitamina-c-pdp` → `svc`
 
-Con `AskUserQuestion`: "Prefisso sezioni: `<default>`? (conferma o proponi alternativo)"
+`AskUserQuestion`: prefisso `<default>`? Conferma o alternativo.
 
-### 3.4 Duplicazione effettiva
+### 3.4 Duplicazione
 
-1. Leggi il template base JSON con `Read`.
-2. Estrai la lista delle sezioni referenziate: ogni blocco `"type": "<nome-sezione>"` che corrisponde a un file `sections/<nome-sezione>.liquid`.
-3. Identifica il prefisso corrente del template base (tipicamente l'inizio del nome di molte sezioni, es. `cboe-` se vengono da `cboe-pdp-05`, `cboe-pdp-06a-video`, ecc.).
-4. Per ogni sezione referenziata che inizia col prefisso base:
-   - Leggi il file originale `sections/<old-prefisso>-<suffix>.liquid` con `Read`.
-   - Calcola nuovo path: `sections/<nuovo-prefisso>-<suffix>.liquid`.
-   - Scrivi il nuovo file con `Write`, applicando queste sostituzioni:
-     - In `{% schema %}`: `"name": "<OLD NAME>"` → `"name": "<NEW NAME>"` (uppercase del prefisso).
-     - In `presets[0].name`: stessa cosa.
-     - Nelle `class=` del markup: se c'è una classe tipo `cboe-` specifica nello scoping CSS, lasciala (è classe CSS, non identifica la sezione). Tocca SOLO il nome schema.
-5. Scrivi il nuovo template JSON:
-   - Copia il contenuto del base.
-   - Sostituisci ogni `"type": "<old-prefisso>-<suffix>"` con `"type": "<nuovo-prefisso>-<suffix>"`.
-   - Salva in `templates/product.<nome-nuovo>.json`.
-6. Mostra all'utente un riepilogo:
-   ```
-   Creati:
-   - templates/product.<nome>.json
-   - sections/<nuovo-prefisso>-01.liquid (da <old>-01)
-   - sections/<nuovo-prefisso>-05.liquid (da <old>-05)
-   ...
-   ```
-7. Chiedi conferma prima del push.
+1. Leggi il template base JSON.
+2. Estrai le sezioni referenziate (`"type": "<nome>"` che corrisponde a un file `sections/<nome>.liquid`).
+3. Identifica il prefisso del base (inizio comune dei nomi sezione).
+4. Per ogni sezione col prefisso base:
+   - `Read sections/<old>-<suffix>.liquid` → `Write sections/<nuovo>-<suffix>.liquid`.
+   - Aggiorna il nome schema (`"name"` in `{% schema %}` e `presets[0].name`) con uppercase del nuovo prefisso. Le classi CSS interne (`.cboe-...`) restano invariate.
+5. Scrivi `templates/product.<nome>.json` come copia del base, sostituendo i `"type"` col nuovo prefisso.
+6. Riepilogo all'utente + conferma prima del push.
 
-### 3.5 Detection + liquidify automatico (OBBLIGATORIO, prima del push)
+**Mai modificare i file originali.**
 
-**Prima di pushare**, ogni file `sections/<nuovo-prefisso>-*.liquid` appena creato deve essere **editabile dal theme editor**. Fonte di verità: `references/section-schema-patterns.md`.
+### 3.5 Liquidify automatico (OBBLIGATORIO, prima del push)
 
-Per ogni sezione duplicata:
+Ogni sezione duplicata deve essere editabile dal theme editor. Pattern: `references/section-schema-patterns.md`.
 
-1. **Detection automatica** (nessuna domanda all'utente, comportamento deterministico):
-   - Leggi il file con `Read`.
-   - Estrai lo `{% schema %}` JSON.
-   - Considera la sezione **già editabile** se:
-     - Lo schema ha `settings` o `blocks` non vuoti, **E**
-     - I testi visibili nel markup (tra tag `<h*>`, `<p>`, `<li>`, `<span>`, `<a>`, `<button>`, attributi `alt=`) sono referenziati come `{{ section.settings.<id> }}` / `{{ block.settings.<id> }}` / `{% for block in section.blocks %}…`, **E**
-     - Le immagini sono referenziate via `{{ section.settings.<id> | image_url: … }}` o `{{ block.settings.<id> | image_url: … }}` (no `<img src="https://cdn.shopify.com/…">` hardcoded).
-   - Altrimenti → marca `needs_liquidify = true`.
+Per ogni file duplicato:
 
-2. **Se `needs_liquidify = true`** → liquidifica la copia (mai il sorgente):
-   - Estrai dal markup i testi visibili, gli URL immagine (`<img src>`, `srcset`, `background-image: url(...)` inline), i link (`<a href>` di contenuto) e gli `alt`.
-   - Per ogni elemento estratto genera un `setting` con `id` semantico (snake_case: `hero_heading`, `hero_subheading`, `hero_image`, `cta_primary_url`, `cta_primary_label`, `benefit_1_title`, …) e `default` = valore estratto.
-   - Usa `richtext` per paragrafi con formattazione inline (`<strong>`, `<em>`, `<a>`), `image_picker` per immagini, `url` + `text` per coppie CTA, `blocks` per gruppi ripetuti di elementi fratelli con stessa classe (FAQ, card benefici, testimonianze).
-   - Sostituisci nel markup: testi → `{{ section.settings.<id> }}`, immagini → `{{ section.settings.<id> | image_url: width: <W> }}` (ricostruendo eventuale srcset via filter Shopify).
-   - **NON modificare** tag HTML, classi CSS, attributi `data-*`, `<script>`, `<style>`, JSON-LD, Liquid logic esistente. Tocca solo contenuto.
-   - **NON toccare MAI** il file sorgente `sections/<vecchio-prefisso>-*.liquid`.
+1. **Detection** (deterministica, no domande):
+   - Leggi schema → settings/blocks non vuoti?
+   - Testi visibili nel markup referenziati come `{{ section.settings.<id> }}` / `{{ block.settings.<id> }}`?
+   - Immagini via `| image_url`, no `<img src="https://cdn.shopify.com/...">` hardcoded?
+   - Se sì a tutto → sezione già editabile, lascia invariata.
+   - Altrimenti → marca `needs_liquidify`.
 
-3. **Se già editabile** → lascia il file invariato.
+2. **Se needs_liquidify**: liquidifica la copia (mai l'originale):
+   - Estrai testi visibili, URL immagine (`<img src>`, `srcset`, `background-image: url(...)` inline), link, `alt`.
+   - Per ciascuno: setting con `id` semantico (`hero_heading`, `hero_image`, `cta_primary_url`...) e `default` = valore estratto.
+   - Tipi: `richtext` per paragrafi formattati, `image_picker` per immagini, `url`+`text` per CTA, `blocks` per gruppi ripetuti.
+   - Sostituisci nel markup: testi → `{{ section.settings.<id> }}`, immagini → `{{ section.settings.<id> | image_url: width: <W> }}`.
+   - NON modificare: tag HTML, classi CSS, `data-*`, `<script>`, `<style>`, JSON-LD, Liquid logic.
 
-4. Mostra all'utente il riepilogo:
-   ```
-   Editabilità sezioni duplicate:
-     ✓ <nuovo-prefisso>-hero.liquid       → già editabile, invariato
-     ✓ <nuovo-prefisso>-benefits.liquid   → liquidified (14 settings, 1 blocks FAQ)
-     ✓ <nuovo-prefisso>-reviews.liquid    → liquidified (3 blocks review)
-   Template sorgente NON modificato.
-   ```
-
-Pattern e esempi before/after: `references/section-schema-patterns.md`.
+3. Riepilogo all'utente: quali sono già editabili, quali liquidificate.
 
 ### 3.6 Push iniziale
 
-Push selettivo di TUTTI i file appena creati (template + sezioni):
-```bash
-cd "<store.workdir_path>"
-set -a; source "<store.env_path>"; set +a
-npx @shopify/cli@latest theme push \
-  --theme <store.theme_id> \
-  --nodelete \
-  --allow-live \
-  --only "templates/product.<nome>.json" \
-  --only "sections/<nuovo-prefisso>-01.liquid" \
-  --only "sections/<nuovo-prefisso>-05.liquid" \
-  # ... tutte le sezioni duplicate
+Push selettivo con `--only` per template + tutte le sezioni duplicate (vedi convenzioni).
+
+### 3.7 Creazione Product in Shopify Admin
+
+Istruzioni all'utente:
+```
+1. Admin → Products → Add product
+2. Title: "<nome del nuovo prodotto>"
+3. Theme template (sidebar destra): seleziona <nome>
+4. Save
+5. Torna qui col lo slug del prodotto (es. crema-borse-occhiaie-ufficiale)
 ```
 
-### 3.7 Istruzioni per il Product Shopify
-
-Mostra all'utente istruzioni per creare il Product in Shopify Admin:
-```
-Ora crea il prodotto in Shopify:
-1. Admin → Products → Add product.
-2. Title: "<nome del nuovo prodotto>".
-3. Scrivi una descrizione base (può essere placeholder, la personalizzeremo dopo via template).
-4. In "Theme template" (sidebar destra, sezione Online store), seleziona: <nome> (il nostro nuovo template).
-5. Save.
-6. Torna qui e dimmi lo slug del prodotto (es. `crema-borse-occhiaie-ufficiale`), così posso riferirmi alla URL live per i check successivi.
-```
-
-Salva lo slug in memoria: `product.slug`. URL live: `https://<store.shopify_domain>/products/<product.slug>`.
+Salva lo slug in `product.slug`. URL live: `https://<store.shopify_domain>/products/<product.slug>`.
 
 ---
 
 ## Fase 4 — Raccolta materiali
 
-🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+🏷️ Prima riga: `<wsa-phase id="research-materials" />`
 
-```
-<wsa-phase id="research-materials" />
-```
+Chiedi all'utente (checklist):
 
-Chiedi all'utente di fornire (puoi presentare come checklist):
+1. **PDP competitor** (1-3 URL/screenshot) — linguaggio, claim, struttura.
+2. **Transcript video** (1-3) — tono di voce, punti di dolore, frasi ad alta conversione.
+3. **Research prodotto**: ingredienti chiave, claim principali, target audience, differenziazione, proof points.
+4. **Angolo marketing attuale** (1-3 esempi di ad: copy + headline + immagine/video).
+5. **Brand assets**: palette HEX, font, logo URL CDN.
 
-1. **PDP competitor**: 1-3 URL o screenshot di PDP di competitor dello stesso angolo/categoria. Servono per capire il linguaggio, i claim, la struttura.
-2. **Transcript video**: 1-3 video (competitor o interni) trascritti in testo. Servono per capire tono di voce, punti di dolore menzionati, frasi ad alta conversione.
-3. **Research prodotto**:
-   - Ingredienti chiave (nome + cosa fa + dosaggio se rilevante).
-   - Claim principali (effetto #1, #2, #3 del prodotto).
-   - Target audience (chi compra, cosa risolve).
-   - Differenziazione (perché noi vs competitor).
-   - Proof points (certificazioni, test clinici, numeri di vendita, recensioni).
-4. **Angolo marketing corrente**: 1-3 esempi di ad che l'utente sta girando su questo prodotto (copy + headline + immagine/video). Serve per allineare il tono della PDP.
-5. **Brand assets**: palette colori (HEX), font (famiglie web), logo URL CDN.
+### 4.1 Angle analysis (OBBLIGATORIO, non saltabile)
 
-### 4.1 Analisi angle competitor + proposta (OBBLIGATORIO)
+Dopo aver ricevuto i materiali, prima della riscrittura:
 
-**Step fisso, non saltabile.** Dopo aver ricevuto le PDP competitor e il resto dei materiali, PRIMA di passare alla riscrittura testi:
+1. **Identifica il MAIN ANGLE** dei competitor. L'angle è il frame narrativo (NON il claim). Esempi:
+   - Ingrediente scientifico esclusivo
+   - Routine naturale di 5 minuti
+   - Alternativa economica al trattamento da €300
+   - Before/after reale di persone come te
+   - Risolve X in N giorni — garantito
 
-1. **Identifica il MAIN ANGLE** usato dai competitor per questo prodotto. L'angle è l'angolazione narrativa principale — NON è il claim, è il frame da cui il prodotto viene raccontato. Esempi:
-   - "Ingrediente scientifico esclusivo" (angle scientifico)
-   - "Routine naturale di 5 minuti al giorno" (angle lifestyle/semplicità)
-   - "Alternativa economica al trattamento estetico da €300" (angle risparmio)
-   - "Before/after reale di persone come te" (angle social proof/identificazione)
-   - "Risolve X in N giorni — garantito" (angle result-driven/urgency)
-
-2. **Presenta l'angle dominante** all'utente con evidenze:
+2. **Presenta il main angle** con evidenze:
    ```
-   Dall'analisi dei competitor PDP + ads emerge questo angle dominante:
-
-   ➤ ANGLE: <frase di 1 riga>
+   ➤ ANGLE: <una riga>
       Evidenze:
       - Competitor A (URL): <come lo usa>
       - Competitor B (URL): <come lo usa>
       - Ads attuali: <come lo rinforzano>
    ```
 
-3. **`AskUserQuestion`**: "Vuoi usare questo stesso angle per la nostra PDP?"
-   - **Sì, uso questo angle** → salva in `pdp.angle` e procedi.
-   - **No, proponimi alternative** → vai al punto 4.
-   - **Ho un angle mio in mente** → l'utente lo descrive, salva e procedi.
+3. `AskUserQuestion`: "Usi questo angle, proponimi alternative, o hai un angle in mente?"
 
-4. Se l'utente chiede alternative: **proponi 2-3 angle alternativi** che sono:
-   - Usati in adiacenza (da competitor minori o in prodotti simili della stessa categoria).
-   - Coerenti con i proof points / ingredienti del nostro prodotto (niente angle che non possiamo sostenere).
-   - Differenzianti rispetto al main angle (per non essere "l'ennesima copia di X").
+4. Se alternative: proponi 2-3 angle (a) usati in adiacenza, (b) sostenibili dai nostri proof points, (c) differenzianti rispetto al main. `AskUserQuestion` finale.
 
-   Presentali con la stessa struttura (angle + evidenze + perché potrebbe funzionare meglio). Poi richiedi conferma via `AskUserQuestion`.
+Salva in `pdp.angle` — bussola della Fase 5.
 
-Salva l'angle scelto in `pdp.angle` — sarà la bussola della riscrittura di TUTTE le sezioni in Fase 5.
+### 4.2 Riepilogo + conferma
 
-### 4.2 Riepilogo e conferma
-
-Fai un riepilogo sintetico:
-- Nome prodotto
-- **Angle scelto** (una riga)
-- 3 claim principali
-- 3 proof points
-- Palette
-
-Chiedi: "Materiali completi, procedo con la scrittura testi sezione-per-sezione?"
+Bullet sintetico: nome prodotto, angle, 3 claim, 3 proof, palette. `AskUserQuestion`: "Materiali completi, procedo con la scrittura testi?"
 
 ---
 
-## Fase 5 — Riscrittura testi per il nuovo prodotto
+## Fase 5 — Riscrittura testi
 
-🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+🏷️ Prima riga: `<wsa-phase id="rewrite-content" />`
 
-```
-<wsa-phase id="rewrite-content" />
-```
+**Le sostituzioni avvengono nei `default` dei `{% schema %}`** (settings/blocks), non nel markup HTML. Markup/CSS/JS della sezione restano identici. Tutti i testi coerenti con `pdp.angle`.
 
-**Contesto importante**: le sezioni duplicate sono a questo punto **tutte editabili** (Fase 3.5 ha liquidificato quelle legacy). I testi del prodotto base (es. berberina) vivono nei `default` dello schema di ogni sezione. Il tuo compito in questa fase è **riscrivere i testi del nuovo prodotto** partendo dalla research raccolta in Fase 4, **modificando i `default` nello schema** — NON il markup HTML. Markup/CSS/JS/struttura restano identici.
+### 5.0 Modalità (obbligatorio)
 
-**Regola operativa**: le sostituzioni di testo avvengono dentro il blocco `{% schema %}` (campi `default` di `settings` e `blocks`), non nel markup Liquid sopra. Markup e classi CSS non si toccano mai in questa fase.
-
-Nessun HTML da incollare in questa fase — tutti i contenuti del nuovo prodotto li hai già dal blocco di ricerca della Fase 4.
-
-### 5.0 Scelta modalità (obbligatoria, all'inizio della fase)
-
-Usa `AskUserQuestion` per proporre le due modalità di lavoro:
-
-**Opzione A — Sezione per sezione (consigliata per prima PDP)**
-Per ogni sezione: riscrivi, mostra diff, push solo di quella sezione, l'utente verifica live, passa alla successiva.
-→ Più lenta ma più sicura: se una modifica è sbagliata te ne accorgi subito e sai esattamente dove.
-
-**Opzione B — Modalità batch**
-Riscrivi tutte le sezioni in parallelo, mostra diff completo di tutte, l'utente approva una volta, push finale in un comando solo.
-→ Più veloce ma meno granulare: un eventuale errore si nota solo alla fine.
-
-**Opzione C — Misto**
-L'utente può partire sezione-per-sezione e a metà passare a batch (o viceversa). Rispetta la scelta corrente finché non chiede diversamente.
-
-Salva la scelta e procedi con il sotto-flusso corrispondente qui sotto.
+`AskUserQuestion`:
+- **A — Sezione per sezione** (consigliata per prima PDP): riscrivi, mostra diff, push solo quella sezione, l'utente verifica live, passa alla successiva.
+- **B — Batch**: tutte parallele, diff completo unico, approvazione globale, push selettivo unico.
+- **C — Misto**: cambia modalità in corsa quando vuoi.
 
 ### 5A — Sotto-flusso sezione per sezione
 
-Per ogni sezione nel template nuovo, in ordine di apparizione nel JSON (top → bottom):
+Per ogni sezione del template nuovo, in ordine di apparizione:
 
-1. **Apri il file duplicato** `sections/<nuovo-prefisso>-<suffix>.liquid` con `Read` e identifica:
-   - Il ruolo della sezione (hero, carousel testimonial, video, dottori, "perché funziona", hotspot, comparison, FAQ, reviews, closing CTA, …). Mappa il ruolo dal nome del file usando `references/image-specs-per-section.md`.
-   - Tutti i testi attualmente presenti (del prodotto base): headline, sub-headline, bullet/paragrafi, CTA, label card, domande FAQ, testimonianze, etc.
-   - Gli URL immagine attualmente presenti (verranno sostituiti in Fase 6, non qui).
-
-2. **Proponi all'utente i testi riscritti** per il nuovo prodotto, derivati dalla research:
-   - Per ogni testo base identificato, produci la versione equivalente per il nuovo prodotto con lo stesso peso/lunghezza/tono.
-   - Usa claim, proof points, ingredienti, tono dalla research (Fase 4).
-   - **Tutti i testi devono essere coerenti con `pdp.angle`** scelto in Fase 4.1. Se una sezione chiede di virare su un altro angolo, segnala e chiedi prima di procedere.
-   - Mantieni la stessa struttura (stesso numero di bullet, stesse label di card, stesso numero di FAQ, ecc.). Se la research non basta per riempire una struttura (es. 5 card ma solo 3 claim), **chiedi input mirato** all'utente invece di inventare.
-   - Mostra la proposta in formato diff chiaro:
-     ```
-     Sezione: <nuovo-prefisso>-<suffix>.liquid (<ruolo>)
-     — Headline
-        prima:  "Il segreto della berberina per abbassare il colesterolo"
-        dopo:   "La crema che rassoda la pelle in 4 settimane"
-     — Sub-headline
-        prima:  "..."
-        dopo:   "..."
-     — Bullet 1/3
-        prima:  "..."
-        dopo:   "..."
-     ...
-     ```
-
-3. **Aspetta conferma o correzioni** dall'utente prima di scrivere nel file. L'utente può:
-   - Confermare tutto → vai al punto 4.
-   - Correggere singoli testi → applica le correzioni e riconferma.
-   - Chiedere un tono diverso (più diretto, più emotivo, più tecnico) → rigenera.
-
-4. **Applica le sostituzioni** SOLO sul file duplicato `sections/<nuovo-prefisso>-<suffix>.liquid`, **dentro il blocco `{% schema %}`** (campi `default` di `settings` e `blocks`):
-   - Per poche sostituzioni: `Edit` con `old_string` / `new_string` esatti sui `default` nello schema JSON.
-   - Per molte sostituzioni (es. FAQ con 7 Q&A → 7 blocks da aggiornare, reviews wall con 10+ blocks): `Bash` con `python3 <<'PY' ... PY` heredoc. Pattern: parsa lo schema come JSON, modifica i `default`, riscrivi il blocco schema nel file.
-   - **Non toccare**: markup HTML sopra lo schema, classi CSS, blocchi `<script>`/`<style>`, attributi `data-*`, URL immagine in `default` di `image_picker` (verranno sostituiti dall'utente dal theme editor in Fase 6), Liquid tags.
-   - Se durante la modifica noti che un testo è ancora hardcoded nel markup (cioè la liquidify di Fase 3.5 non l'ha coperto), segnala e proponi di completare la liquidify su quella sezione prima di continuare — non patchare nel markup.
-
-5. **Verifica no-regressioni sul template base**: prima del push, conferma a te stesso di non aver aperto/modificato per sbaglio file `sections/<vecchio-prefisso>-*.liquid` o `templates/product.<vecchio-nome>.json`. Se l'hai fatto, fermati e ripristina.
-
-6. **Push selettivo** della sola sezione modificata:
-   ```bash
-   cd "<store.workdir_path>"
-   set -a; source "<store.env_path>"; set +a
-   npx @shopify/cli@latest theme push \
-     --theme <store.theme_id> --nodelete --allow-live \
-     --only "sections/<nuovo-prefisso>-<suffix>.liquid"
+1. **Read** del file duplicato → identifica ruolo (hero, FAQ, testimonial, ...) usando `references/image-specs-per-section.md`.
+2. **Proponi testi nuovi** coerenti con `pdp.angle`, stesso numero di bullet/card/FAQ. Diff before/after chiaro:
    ```
-
-7. Chiedi all'utente di aprire l'URL live (`https://<store.shopify_domain>/products/<product.slug>`) e confermare testi/layout su mobile e desktop.
-
-8. Gestisci aggiustamenti (font-size, white-space, nowrap, spelling) come modifiche minime incrementali — mai rifare la sezione.
-
-9. Quando l'utente conferma, prima di passare alla sezione successiva **chiedi esplicitamente** con `AskUserQuestion`:
-
-   "Sezione confermata. Come vuoi procedere con le restanti N sezioni?"
-   - **Continua sezione-per-sezione** → ripeti il ciclo dal punto 1 sulla prossima sezione.
-   - **Passa a batch (completa tutte le restanti insieme)** → switcha al sotto-flusso 5B (batch) per le sezioni ancora da fare. Il progresso sulle sezioni già confermate resta intatto.
-
-   Rispetta la scelta. Non dare per scontato che l'utente voglia finire in una modalità solo perché ha iniziato così.
-
-Continua (nella modalità corrente) fino all'ultima sezione del template. A fine fase, tutti i testi del nuovo prodotto sono live, le immagini sono ancora quelle vecchie (placeholder del prodotto base): vengono sostituite in Fase 6.
-
-### 5B — Sotto-flusso batch
-
-1. **Leggi tutte le sezioni duplicate in parallelo** con più chiamate `Read` in un singolo messaggio. Per ciascuna identifica ruolo + testi da riscrivere.
-2. **Pianifica la riscrittura integrata di tutta la PDP**: i testi tra sezioni devono essere coerenti (hero e FAQ devono parlare lo stesso linguaggio, i claim principali vanno ripetuti con stessa terminologia, i numeri dei proof points tornano).
-3. **Mostra all'utente un diff completo di tutte le sezioni in un unico messaggio**, raggruppato per sezione:
-   ```
-   === svc-hero-badge.liquid (hero) ===
    — Headline
       prima: "..."
       dopo:  "..."
-   ...
+   ```
+   Se la research non basta per una struttura (es. 5 card, 3 claim): chiedi input mirato invece di inventare.
+3. **Aspetta conferma/correzioni** prima di scrivere.
+4. **Applica** modifiche SOLO ai `default` dello schema:
+   - Poche sostituzioni → `Edit` con `old_string`/`new_string` esatti.
+   - Molte → `Bash` con `python3 <<'PY' ... PY` heredoc (parsa schema JSON, modifica `default`, riscrivi blocco).
+   - Non toccare: markup HTML, classi CSS, `<script>`, `<style>`, `data-*`, URL immagini in `image_picker` default (verranno sostituite in Fase 6), Liquid tags.
+   - Se trovi testi ancora hardcoded nel markup: segnala e completa la liquidify su quella sezione (non patchare nel markup).
+5. **Verifica no-regressioni**: prima del push, conferma di non aver toccato file `<vecchio-prefisso>-*` o `templates/product.<vecchio-nome>.json`.
+6. **Push selettivo** della sola sezione modificata.
+7. Utente verifica `https://<store.shopify_domain>/products/<product.slug>` mobile + desktop.
+8. Aggiustamenti minimi (font-size, white-space, spelling) → incrementali, mai rifare la sezione.
+9. Prima della prossima sezione: `AskUserQuestion` "Continua sezione-per-sezione, passa a batch, o misto?" Rispetta la scelta.
 
-   === svc-pdp-05.liquid (carousel testimonial) ===
-   ...
-   ```
-4. **Aspetta approvazione globale o correzioni puntuali**:
-   - Se l'utente approva tutto → applica le modifiche a tutti i file in parallelo (multiple `Edit` o `Bash` heredoc con `python3` che scrive più file).
-   - Se chiede correzioni su sezioni specifiche → applica solo quelle correzioni e ripresenta il diff aggiornato per riconferma.
-   - Se chiede un cambio di tono globale → rigenera tutto.
-5. **Verifica no-regressioni sul template base**: prima del push, conferma a te stesso di non aver aperto/modificato per sbaglio file del prefisso base.
-6. **Push selettivo unico** con tutte le sezioni in un solo comando:
-   ```bash
-   cd "<store.workdir_path>"
-   set -a; source "<store.env_path>"; set +a
-   npx @shopify/cli@latest theme push \
-     --theme <store.theme_id> --nodelete --allow-live \
-     --only "sections/<nuovo-prefisso>-<suffix1>.liquid" \
-     --only "sections/<nuovo-prefisso>-<suffix2>.liquid" \
-     # ...una per ogni sezione duplicata
-   ```
-7. Chiedi all'utente di aprire l'URL live e fare un check completo della PDP. Raccogli eventuali aggiustamenti e applicali puntualmente (in questa fase i fix successivi sono sezione-per-sezione, anche se il primo push era batch).
+### 5B — Sotto-flusso batch
+
+1. **Read tutte** le sezioni duplicate in parallelo (multiple Read in un messaggio).
+2. **Pianifica riscrittura integrata** — testi tra sezioni coerenti, stesso linguaggio, claim ripetuti con stessa terminologia.
+3. **Diff completo unico** raggruppato per sezione.
+4. Approvazione globale o correzioni puntuali → applica.
+5. Verifica no-regressioni → push selettivo unico con tutte le sezioni.
+6. Utente check completo. Aggiustamenti successivi → puntuali (anche se il primo push era batch).
 
 ### 5C — Misto
 
-L'utente può cambiare modalità in corsa dicendo "passa a batch" o "torna a sezione per sezione". Rispetta la scelta corrente senza resettare il progresso: continua dalla prossima sezione non ancora lavorata.
+L'utente cambia modalità in corsa. Rispetta la scelta, continua dalla prossima sezione non ancora lavorata.
 
 ---
 
 ## Fase 6 — Guida immagini
 
-🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+🏷️ Prima riga: `<wsa-phase id="images-guide" />`
 
-```
-<wsa-phase id="images-guide" />
-```
+Le immagini sono `image_picker` nello schema. L'utente le carica **dal theme editor**, nessun replace di URL CDN nei file. Specs: `references/image-specs-per-section.md`.
 
-Le sezioni sono editabili: le immagini sono `image_picker` nello schema. L'utente le carica **direttamente dal theme editor**, nessun replace di URL CDN nei file. Fonte: `references/image-specs-per-section.md` (specs) + `references/section-schema-patterns.md` (pattern editor).
+Per ogni sezione con `image_picker`:
 
-Per ogni sezione che contiene immagini:
-1. Identifica il numero e ruolo delle immagini richieste (grep degli `image_picker` nello schema).
-2. Mostra all'utente il brief:
-   - Ruolo dell'immagine (cosa deve mostrare).
-   - Ratio consigliato + dimensioni target + peso max.
-   - Nome del campo `image_picker` nel theme editor (es. `Hero image`, `Benefit 2 icon`).
-3. Istruzioni utente:
+1. `grep image_picker` nello schema → conta + ruoli.
+2. Brief all'utente:
    ```
-   1. Apri il theme editor: Admin → Online Store → Themes → Customize (sul tema <store.theme_name>).
-   2. Vai alla PDP del nuovo prodotto (top-left picker → Products → <nome prodotto>).
-   3. Seleziona la sezione <nuovo-prefisso>-<suffix>.
-   4. Click sul campo "<label image_picker>" → Select image → Upload → scegli il file → Save.
+   Sezione: <nuovo-prefisso>-<suffix>.liquid
+   - Ruolo immagine: <cosa deve mostrare>
+   - Ratio: <es. 4:5>, dimensioni: <1200×1500>, peso max: <150 KB>
+   - Campo theme editor: "<label image_picker>"
    ```
-4. L'utente conferma in chat che ha caricato.
-5. Nessun push necessario: le immagini sono salvate nei settings del template lato Shopify, non nei file Liquid del tema.
-6. Chiedi conferma visiva sull'URL live.
+3. Istruzioni:
+   ```
+   1. Admin → Online Store → Themes → Customize (<store.theme_name>)
+   2. Top-left picker → Products → <prodotto>
+   3. Seleziona la sezione → click sul campo immagine → Upload → Save
+   ```
+4. Conferma visiva su URL live. Nessun push necessario.
 
 ---
 
 ## Fase 7 — Verifica finale
 
-🚨 **PRIMA AZIONE in questa fase**, prima di qualsiasi altra cosa:
+🏷️ Prima riga: `<wsa-phase id="final-check" />`
 
-```
-<wsa-phase id="final-check" />
-```
+Checklist:
+- [ ] Testi validati su tutte le sezioni
+- [ ] Tutte le immagini caricate e renderizzate
+- [ ] Mobile 375px ok
+- [ ] Desktop 1440px ok
+- [ ] DevTools console pulita (no errori Liquid, no 404 immagini)
+- [ ] URL diretto ok: `https://<store.shopify_domain>/products/<product.slug>`
+- [ ] Custom domain (se presente)
 
-1. Mostra la checklist finale:
-   - [ ] Tutte le sezioni popolate con testi validati
-   - [ ] Tutte le immagini caricate e renderizzate correttamente
-   - [ ] Mobile (viewport 375px) ok
-   - [ ] Desktop (viewport 1440px) ok
-   - [ ] DevTools console pulita (no errori Liquid, no 404 su immagini)
-   - [ ] URL diretta funzionante: `https://<store.shopify_domain>/products/<product.slug>`
-   - [ ] Custom domain (se presente): `https://<store.custom_domain>/products/<product.slug>`
-2. Chiedi all'utente di confermare ogni check o segnalare problemi.
-3. Per ogni problema segnalato: torna alla fase corrispondente (5 per testi, 6 per immagini) e fai le modifiche.
-4. Quando tutto è ✅: dichiara la PDP pronta. Suggerisci:
-   - Aggiungere il prodotto al catalogo/collezione giusta.
-   - Impostare pricing, inventory, variants.
-   - Collegare il sistema bundling (se usato) — se il prodotto usa Katching o simili, consulta `references/workflow-faithful-rebuild.md` per pattern form nativo.
+Per ogni problema → torna alla fase corrispondente. Quando tutto ✅: dichiara la PDP pronta. Suggerisci catalogo/collezione, pricing/inventory/variants, bundling (Katching: vedi `references/workflow-faithful-rebuild.md`).
 
 ---
 
-## Fase 8 — Link su Shopify (solo se gira dentro Working Suite)
+## Fase 8 — Link su Shopify (solo sotto WSA)
 
-🚨 **PRIMA AZIONE in questa fase** (solo se WSA_INTERNAL_KEY valorizzato), prima di qualsiasi altra cosa:
+🏷️ Prima riga: `<wsa-phase id="link-shopify" />`
 
-```
-<wsa-phase id="link-shopify" />
-```
-
-Questa fase **vale solo se la skill è invocata dal Builder di Working Suite**. Lo capisci da una sola condizione: la variabile d'ambiente `WSA_INTERNAL_KEY` è valorizzata. Se è vuota, **salta interamente questa fase** (non avere paura, in Working Suite il wrapper la inietta automaticamente).
+Se `$WSA_INTERNAL_KEY` vuoto: salta la fase.
 
 ```bash
 test -n "$WSA_INTERNAL_KEY" && echo "WSA_ACTIVE" || echo "WSA_INACTIVE"
 ```
 
-Se `WSA_ACTIVE` → procedi.
-Se `WSA_INACTIVE` → finita la skill, niente da fare qui.
-
-### 2. Chiedi all'utente l'URL della PDP live
-
-Chiedi (testo libero o `AskUserQuestion`):
-
-> "PDP pronta 🎉 Per chiudere il lavoro, incolla qui l'URL della pagina prodotto live su Shopify — quella che useremo nelle analytics. Esempio: `https://<store>.myshopify.com/products/<handle>` oppure il custom domain."
-
-Aspetta che l'utente incolli un URL. Conserva la risposta in `$PRODUCT_URL`.
-
-### 3. Chiama l'endpoint interno del wrapper
+Se attiva: chiedi l'URL PDP live (testo libero o `AskUserQuestion`), salva in `$PRODUCT_URL`, poi:
 
 ```bash
 curl -sS -X POST "$WSA_INTERNAL_BASE/link-shopify" \
@@ -591,39 +343,28 @@ curl -sS -X POST "$WSA_INTERNAL_BASE/link-shopify" \
   -d "$(printf '{"url":"%s"}' "$PRODUCT_URL")"
 ```
 
-La risposta JSON ha tre campi che ti dicono cosa è successo:
-
-- `"ok": true` — operazione riuscita
-- `"handle": "<slug>"` — slug estratto dall'URL
-- `"productLinked": true|false` — `true` se la skill è collegata a un workspace_products row, `false` se l'handle non corrisponde a nessun prodotto registrato in Working Suite
-
-Se `productLinked: false`, **spiega all'utente** in chiaro:
-
-> "Ho linkato l'URL alla sessione ma il prodotto `<handle>` non risulta ancora nel catalogo Working Suite. Vai su Configurazioni → Prodotti e aggiungilo, oppure dimmi se vuoi che continuiamo lo stesso."
-
-Se `ok: false`, mostra il messaggio di errore e suggerisci di copiare l'URL e fare il link manualmente dalla pagina sessione Builder.
-
-### 4. Chiudi
-
-Conferma all'utente che la sessione è ora collegata al prodotto live. Nessuna altra azione richiesta.
+Risposta:
+- `ok: true` + `productLinked: true` → sessione collegata al prodotto in `workspace_products`. Conferma all'utente, chiudi.
+- `ok: true` + `productLinked: false` → URL salvato ma handle non corrisponde. Suggerisci: "Vai su Configurazioni → Prodotti e aggiungi `<handle>` per collegare anche le analytics, oppure proseguiamo senza."
+- `ok: false` → mostra errore + suggerisci link manuale dalla pagina sessione Builder.
 
 ---
 
-## Troubleshooting rapido
+## References
 
-| Sintomo                                         | Possibile causa                                       | Fix                                                                 |
-| ----------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------- |
-| `theme list` ritorna 401                        | Token scaduto/revocato                                | Rigenera Theme Access token, aggiorna `.env`                        |
-| Push fallisce con "Liquid syntax error"         | Sostituzione ha rotto Liquid                          | Leggi il file, localizza errore, `Edit` per riparare                |
-| Sezione non appare su PDP live                  | Template JSON non aggiornato o sezione non pushata   | Verifica `templates/product.<nome>.json` + push sezione             |
-| Stile CSS diverso dall'originale                | Hash GemPages toccato per errore                      | Ripristina il file originale e rifai solo la sostituzione testi     |
-| Product non usa il nuovo template                | Template suffix non selezionato in Admin              | Admin → Product → sidebar → Theme template → seleziona nuovo nome   |
+- `workflow-faithful-rebuild.md` — regola d'oro + tecniche sostituzione + form Katching
+- `auth-pattern.md` — Theme Access token, modalità manuale
+- `selective-push.md` — comando push completo
+- `section-naming.md` — convenzioni prefissi
+- `image-specs-per-section.md` — dimensioni/ratio per ruolo sezione
+- `section-schema-patterns.md` — liquidify, setting types, edge case
 
-## File correlati (references)
+## Troubleshooting
 
-- `references/workflow-faithful-rebuild.md` — regola d'oro + tecniche di sostituzione.
-- `references/auth-pattern.md` — `.env`, Theme Access token, verifica connessione.
-- `references/selective-push.md` — comando push standard + flag.
-- `references/section-naming.md` — convenzioni prefissi + aggiornamento schema.
-- `references/image-specs-per-section.md` — dimensioni/ratio per tipo sezione.
-- `references/section-schema-patterns.md` — regole di liquidify: schema editabile, pattern before/after, tipi di setting, edge case.
+| Sintomo                          | Causa                                  | Fix                                                  |
+| -------------------------------- | -------------------------------------- | ---------------------------------------------------- |
+| `theme list` ritorna 401         | Token scaduto/revocato                 | Operatore rigenera in Configurazioni → Store         |
+| Push fallisce "Liquid syntax"    | Sostituzione ha rotto Liquid           | Read file, localizza errore, Edit per riparare       |
+| Sezione non appare su PDP live   | Template JSON o sezione non pushata    | Verifica `templates/product.<nome>.json` + push      |
+| Stile diverso dall'originale     | Hash legacy toccato per errore         | Ripristina file originale + rifai solo testi schema  |
+| Product non usa il nuovo template| Template suffix non selezionato        | Admin → Product → Theme template → seleziona         |
