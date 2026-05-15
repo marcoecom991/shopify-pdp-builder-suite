@@ -56,6 +56,40 @@ npx @shopify/cli@latest theme push \
 
 Mai senza `--only`. Include SOLO i file del nuovo funnel (template + sezioni col prefisso scelto).
 
+### Errori transitori CLI Shopify (retry obbligatorio)
+
+Shopify CLI fallisce a volte per cause **transitorie**: `502`, `503`, `504`, `ETIMEDOUT`, `ECONNRESET`, `socket hang up`, `network error`. Non sono errori tuoi.
+
+**Comportamento richiesto**: fino a **3 tentativi** con backoff esponenziale (10s → 20s → 30s).
+
+Pattern:
+```bash
+for attempt in 1 2 3; do
+  cd "$STORE_WORKDIR"
+  set -a; source "$STORE_ENV"; set +a
+  if npx @shopify/cli@latest theme push --theme "$STORE_THEME_ID" --nodelete --allow-live --only "<file>"; then
+    break
+  fi
+  exit_code=$?
+  if [ $attempt -lt 3 ]; then
+    sleep_secs=$((attempt * 10))
+    echo "Tentativo $attempt fallito, ritento fra ${sleep_secs}s..."
+    sleep $sleep_secs
+  else
+    echo "Push fallito dopo 3 tentativi (exit=$exit_code)"
+    exit $exit_code
+  fi
+done
+```
+
+**Quando NON fare retry** (segnala subito all'utente):
+- `401` / `403` / `Invalid API key` → token scaduto. Rimanda a Configurazioni → Store.
+- `Liquid syntax error` → la modifica è rotta. Fixa il file e ripeti.
+- `Theme not found` / `404` su `--theme <id>` → ID tema non esiste più. Ricostruisci la lista temi.
+- `404` su `--only "<file>"` → path file errato. Fixa il path.
+
+Stesso retry su `theme pull`. Su `theme list` no retry (errori lì = auth).
+
 ### Regole di intoccabilità
 
 1. **Mai toccare template / sezioni esistenti** del tema. Il funnel vive in file nuovi con un prefisso **mai uguale** a uno già presente.

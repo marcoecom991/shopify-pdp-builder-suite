@@ -52,6 +52,40 @@ npx @shopify/cli@latest theme push \
 
 Mai `theme push` senza `--only`. Il `--only` include SOLO i file del nuovo prefisso (template + sezioni duplicate).
 
+### Errori transitori CLI Shopify (retry obbligatorio)
+
+Shopify CLI fallisce a volte per cause **transitorie** (non per errore tuo): `502 Bad Gateway`, `503 Service Unavailable`, `504 Gateway Timeout`, `ETIMEDOUT`, `ECONNRESET`, `socket hang up`, `network error`. Sono normali — succede sotto carico o per blip di rete.
+
+**Comportamento richiesto**: non fermarti al primo fallimento. Fai **fino a 3 tentativi** con backoff esponenziale.
+
+Pattern:
+```bash
+for attempt in 1 2 3; do
+  cd "$STORE_WORKDIR"
+  set -a; source "$STORE_ENV"; set +a
+  if npx @shopify/cli@latest theme push --theme "$STORE_THEME_ID" --nodelete --allow-live --only "<file>"; then
+    break
+  fi
+  exit_code=$?
+  if [ $attempt -lt 3 ]; then
+    sleep_secs=$((attempt * 10))   # 10s, poi 20s, poi 30s
+    echo "Tentativo $attempt fallito, ritento fra ${sleep_secs}s..."
+    sleep $sleep_secs
+  else
+    echo "Push fallito dopo 3 tentativi (exit=$exit_code)"
+    exit $exit_code
+  fi
+done
+```
+
+**Quando NON fare retry** (errori NON transitori — fallimento immediato e segnala all'utente):
+- `401 Unauthorized` / `Invalid API key` / `403 Forbidden` → token scaduto/revocato. Stop, rimanda l'utente a Configurazioni → Store.
+- `Liquid syntax error` / `Invalid Liquid` → la modifica è rotta. Stop, leggi il file, fixa, ripeti.
+- `Theme not found` / `404` su `--theme <id>` → l'ID tema non esiste più (cancellato). Stop, ricostruisci la lista temi.
+- `404` su `--only "<file>"` → il file non esiste sul disco. Stop, fixa il path.
+
+In modalità manutenzione (post-launch), applica lo stesso retry su `theme push` puntuali e su `theme pull`. Tenere `theme list` non in retry: l'errore lì è quasi sempre auth.
+
 ### Regole di intoccabilità
 
 1. **Mai modificare il template base o le sue sezioni.** Il template base (es. `product.berberina-pills.json`) e le sue sezioni (es. `cboe-pdp-05.liquid`) appartengono a un prodotto live diverso. Si duplicano in file nuovi con prefisso nuovo; ogni `Edit`/`Write` avviene sui duplicati.
