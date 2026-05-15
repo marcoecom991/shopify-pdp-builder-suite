@@ -191,6 +191,15 @@ Salva `brand.*` — verrà iniettato nelle sezioni in Fase 8.
 
 Salva in `funnel.type` ∈ {`advertorial`, `listicle`, `quiz`, `other`}.
 
+**Sotto Working Suite** (`$WSA_INTERNAL_KEY` valorizzato), persisti subito il tipo scelto via wrapper così la home + le anteprime mostrano "Funnel · Advertorial" senza aspettare la fine del flow:
+
+```bash
+curl -sS -X POST "$WSA_INTERNAL_BASE/set-funnel-meta" \
+  -H "Content-Type: application/json" \
+  -H "X-WSA-Key: $WSA_INTERNAL_KEY" \
+  -d "$(printf '{"funnelType":"%s"}' "$FUNNEL_TYPE")"
+```
+
 Carica struttura base da `references/funnel-types.md` — ipotesi di partenza, raffinata in Fase 5.
 
 Se `other`: chiedi descrizione (numero sezioni, ordine, ruoli).
@@ -210,6 +219,17 @@ Definisci **solo la struttura** (quante sezioni, ordine, ruoli). I contenuti ven
 Esempi: `https://nimea-beauty.it/products/crema-borse-occhiaie-ufficiale`.
 
 Valida: `https://` + `/products/<slug>`. Salva in `funnel.cta_url` — sarà il `href` di TUTTI i bottoni.
+
+**Sotto Working Suite**, persisti subito il target URL così la home + le anteprime mostrano il prodotto a cui il funnel punta + la thumbnail (se il prodotto è registrato in Configurazioni → Prodotti):
+
+```bash
+curl -sS -X POST "$WSA_INTERNAL_BASE/set-funnel-meta" \
+  -H "Content-Type: application/json" \
+  -H "X-WSA-Key: $WSA_INTERNAL_KEY" \
+  -d "$(printf '{"funnelTargetUrl":"%s"}' "$FUNNEL_CTA_URL")"
+```
+
+La risposta JSON ha `funnelTargetProductLinked: true|false`. Se `false`, l'handle non risulta in `workspace_products` — di' all'operatore: "URL salvato, ma il prodotto `<handle>` non è ancora nel catalogo Working Suite. Aggiungilo da Configurazioni → Prodotti per averlo nelle anteprime / analytics." Procedi comunque col flow del funnel.
 
 ### 5.2 Esempi competitor
 
