@@ -38,6 +38,12 @@ Per "una sola opzione e serve conferma": `AskUserQuestion` con `Procedi con <nom
 
 Domande aperte (token, URL, slug, testo libero): chiedi in testo — l'utente userà la barra input in basso.
 
+**Gestione della risposta** (importante — leggi attento): Working Suite invia la scelta dell'utente come un normale user message contenente l'**etichetta dell'opzione cliccata**. Esempio: se hai mostrato `Advertorial` + `Listicle` + `Quiz`, quando l'utente clicca `Advertorial` riceverai `Advertorial` come prossimo messaggio. **Quel messaggio È la risposta alla tua AskUserQuestion** — il protocollo CLI non passa un `tool_result` strutturato, vedi solo il testo dell'opzione.
+
+→ **MAI** rispondere con "Domanda annullata", "Tool interrotto", "Operazione annullata" o frasi simili. L'utente NON ha annullato — ha cliccato un pulsante. Procedi con quella scelta.
+
+→ Se il messaggio utente NON corrisponde a nessuna opzione mostrata (è una frase libera tipo "no scegli tu" o "torna indietro"), interpretala come correzione del flow e chiedi conferma; anche qui non parlare di "annullamento del tool".
+
 ### Push selettivo (template — riusalo)
 
 ```bash
